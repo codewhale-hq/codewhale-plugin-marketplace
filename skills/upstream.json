@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/codewhale-hq/Codewhale",
-  "commit": "21c8f86c4c774f0028247d566ce976d16bbd4fbc",
-  "generation": "17",
+  "commit": "506cdf363baaebdefd690c8efe6818f7dea3ba19",
+  "generation": "18",
   "skills": [
     "batch",
     "best-of-n",
@@ -56,7 +56,7 @@
     "best-of-n/SKILL.md": "e5e5faeeb9cb8c5dcdb0bcd33bc28ca0565e93277af47c4745bfbbc2897611ea",
     "dataviz/SKILL.md": "5fc2960206d7ec413c196a90a8a3f26a493604485d7b157a92782b69a5d923df",
     "debug/SKILL.md": "34d6d926aba281d731e62dc7688a81c6afff6036b27933904dff5348d158c48e",
-    "delegate/SKILL.md": "754eadf37d769b43a01be1fac8aa79d5ce5d21f4a987cfc68e1c8cd9fafccfb6",
+    "delegate/SKILL.md": "21e4305ff0784dedad977d0d31257b83772eccc05a6502035ecd9710a8005f62",
     "dependency-update/SKILL.md": "5db9b1b34ea75be40725afab2e38f5e46dccff41580fe36f1a8c737c95c20b1a",
     "document/SKILL.md": "4d37e787251935f981c69ae22fb5faf66459c22520edf28472692ed0d5c24e64",
     "documents/SKILL.md": "27ba3161ab9448245d6658efadccf955ee8f4ef2cda4f7b825a99c45b8bd66aa",
