@@ -173,7 +173,7 @@ packager avoids shipping those artifacts. Installation remains a host operation.
 
 ## Find a skill by the job you need done
 
-The [skill directory](../../skills/README.md) groups 47 current Core skills into
+The [skill directory](../../skills/README.md) groups 47 generation-18 Core skills into
 software work, research/documents, everyday tasks and agent extension. Run
 `npm run skills -- email` or `npm run skills -- audio` for a filtered list.
 Each skill installs as `codewhale-skills:<name>`; accounts, tools and permissions
