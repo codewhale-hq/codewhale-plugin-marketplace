@@ -54,8 +54,9 @@ const IGNORE = /(^|\/)(receipts|dist|node_modules)(\/|$)|\.DS_Store$|(^|\/)\.git
 // needs to be excluded from this side.
 // Files that deliberately differ in Core's vendored copy: the bundled
 // package.json is renamed/trimmed, the README describes the bundled context,
-// and manifest.test skips the kimi.plugin.json contract Core does not carry.
-const CORE_VARIANTS = new Set(["package.json", "README.md", "tests/manifest.test.mjs"]);
+// manifest.test skips the kimi.plugin.json contract Core does not carry, and
+// package-lock.json and src/lease.mjs drop the Sprite task-hold Core removed.
+const CORE_VARIANTS = new Set(["package.json", "README.md", "tests/manifest.test.mjs", "package-lock.json", "src/lease.mjs"]);
 
 const upstreamExists = fs.existsSync(path.join(UPSTREAM, "plugin.json"));
 const coreExists = fs.existsSync(CORE_TREE);
