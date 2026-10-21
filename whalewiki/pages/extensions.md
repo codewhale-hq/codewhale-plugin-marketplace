@@ -196,9 +196,11 @@ also catches upstream changes to membership, wording or resources.
 Run `npm run check` and `npm test && npm run check:web`. The catalog check covers
 manifest identity, declared remote hosts and skill metadata. Unit and protocol
 tests cover implementation behavior; browser tests exercise the wiki reader and Chrome extension.
-The catalog check also rejects generic manifest keywords (browser, web, wiki
-and the like, listed in the check itself), because keywords feed Codewhale's
-plugin offers.
+The catalog check also rejects generic manifest keywords, listed in the check
+itself: everyday words such as browser, web and wiki, and Codewhale's own
+vocabulary such as agent, MCP, model, session and tool. Keywords feed
+Codewhale's plugin offers, and a request about Codewhale itself is not a reason
+to offer a vendor's plugin.
 The repository wiki has its own `npm run check:wiki` source-drift gate.
 
 Passing local checks is not hosted CI, a real service login, native platform

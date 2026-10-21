@@ -34,7 +34,8 @@ function checkCatalog(keywords, { vendored = false } = {}) {
 }
 
 test("the stoplist covers every generic word the offer policy names", () => {
-  const policy = ["accessibility", "screenshot", "automation", "browser", "web", "wiki", "documentation"];
+  const policy = ["accessibility", "screenshot", "automation", "browser", "web", "wiki", "documentation",
+    "agent", "agents", "code", "codes", "data", "mcp", "mcps", "model", "models", "session", "sessions", "tool", "tools"];
   const run = checkCatalog(policy);
   assert.equal(run.status, 1, run.stdout + run.stderr);
   for (const term of policy) assert.match(run.stderr, new RegExp(`'${term}'`), term);
@@ -47,13 +48,13 @@ test("check-marketplace rejects a stoplisted keyword", () => {
 });
 
 test("check-marketplace matches stoplisted keywords case-insensitively", () => {
-  const run = checkCatalog(["Browser"]);
+  const run = checkCatalog(["Browser", "MCP", " Models "]);
   assert.equal(run.status, 1, run.stdout + run.stderr);
-  assert.match(run.stderr, /'Browser'/);
+  for (const term of ["Browser", "MCP", " Models "]) assert.ok(run.stderr.includes(`'${term}'`), term);
 });
 
 test("specific keywords pass", () => {
-  const run = checkCatalog(["demo-specific", "side-panel"]);
+  const run = checkCatalog(["demo-specific", "side-panel", "convex", "supabase", "stripe", "mcp.example.com", "code editor"]);
   assert.equal(run.status, 0, run.stdout + run.stderr);
 });
 

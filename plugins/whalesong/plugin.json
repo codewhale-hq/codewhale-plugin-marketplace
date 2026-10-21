@@ -12,7 +12,6 @@
     "traces",
     "analysis",
     "langfuse",
-    "sessions",
     "whalesong"
   ],
   "extensions": {

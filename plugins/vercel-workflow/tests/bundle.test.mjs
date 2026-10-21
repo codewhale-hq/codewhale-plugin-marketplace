@@ -21,7 +21,7 @@ test("manifest follows the marketplace contract", () => {
   assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
   assert.equal(manifest.license, "MIT");
   assert.deepEqual(Object.keys(manifest).filter((k) => !["$schema", "name", "version", "description", "author", "homepage", "repository", "license", "keywords", "extensions"].includes(k)), []);
-  const stoplist = ["accessibility", "automation", "browser", "browsers", "chrome", "codebase", "docs", "documentation", "extension", "extensions", "screenshot", "screenshots", "web", "website", "wiki"];
+  const stoplist = ["accessibility", "agent", "agents", "automation", "browser", "browsers", "chrome", "code", "codebase", "codes", "data", "docs", "documentation", "extension", "extensions", "mcp", "mcps", "model", "models", "screenshot", "screenshots", "session", "sessions", "tool", "tools", "web", "website", "wiki"];
   assert.ok(manifest.keywords.every((k) => !stoplist.includes(k)));
   const cw = manifest.extensions["net.codewhale"];
   assert.equal(cw.skills.path, "skills");
