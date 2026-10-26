@@ -1,37 +1,39 @@
 # Codemap
 
-_326 files. Regenerate with `whalewiki map` — deterministic, no model._
+_354 files. Regenerate with `whalewiki map` — deterministic, no model._
 
 ## Languages
 
-- `.mjs` — 129
-- `.md` — 99
-- `.json` — 51
-- `.png` — 11
-- `(none)` — 8
-- `.m` — 6
-- `.svg` — 4
-- `.yml` — 3
-- `.h` — 3
-- `.sh` — 3
-- `.py` — 2
-- `.ps1` — 2
-- `.c` — 1
-- `.plist` — 1
-- `.gif` — 1
-- `.html` — 1
-- `.toml` — 1
+- `.md` — 151
+- `.mjs` — 92
+- `.json` — 49
+- `(none)` — 23
+- `.js` — 10
+- `.toml` — 8
+- `.png` — 7
+- `.html` — 5
+- `.yml` — 2
+- `.css` — 2
+- `.jsx` — 2
+- `.jpg` — 1
+- `.sh` — 1
+- `.mts` — 1
 
 ## Modules
 
-### `./` (6 files)
+### `./` (7 files)
 
 - `CONTRIBUTING.md`
+- `LICENSE`
 - `README.md`
 - `marketplace.json`
 - `package-lock.json`
 - `package.json`
 - `playwright.config.mjs`
+
+### `.github/` (1 files)
+
+- `CODEOWNERS`
 
 ### `.github/workflows/` (1 files)
 
@@ -45,13 +47,19 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 
 - `catalog.json`
 
-### `docs/` (5 files)
+### `docs/` (6 files)
 
 - `CONNECTIONS.md`
 - `MARKETPLACE-REVIEW-20260919.md`
 - `REVIEW-BOT.md`
 - `SECURITY-20260911.md`
 - `VALIDATION-20260911.md`
+- `VALIDATION-20261005.md`
+
+### `docs/assets/` (2 files)
+
+- `weixin-bridge-qr-login.png`
+- `weixin-bridge-status-verify.jpg`
 
 ### `integrations/` (3 files)
 
@@ -65,10 +73,11 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 
 ### `integrations/bridge-core/src/` (1 files)
 
-- `lib.mjs` — `ThreadStore`, `envFirst`, `parseList`, `parseBool`, `parseEnvText`, `cleanEnvValue`, `isPlaceholderValue`, `parseTextContent`, `stripGroupPrefix`, `parseCommand`, `parseApprovalDecisionArgs`, `commandAction`
+- `lib.mjs` — `writeFileDurable`, `ThreadStore`, `ApprovalOwnershipError`, `decideApproval`, `settleStoredApproval`, `envFirst`, `parseList`, `parseBool`, `parseEnvText`, `cleanEnvValue`, `isPlaceholderValue`, `parseTextContent`
 
-### `integrations/bridge-core/test/` (2 files)
+### `integrations/bridge-core/test/` (3 files)
 
+- `approvals.test.mjs`
 - `lib.test.mjs`
 - `recovery-policy.test.mjs`
 
@@ -148,14 +157,107 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 - `README.md`
 - `package.json`
 
-### `integrations/weixin-bridge/src/` (2 files)
+### `integrations/weixin-bridge/scripts/` (1 files)
+
+- `dev-up.sh`
+
+### `integrations/weixin-bridge/src/` (3 files)
 
 - `index.mjs`
-- `lib.mjs` — `randomUin`, `MessageItemType`, `extractText`, `helpText`, `ILinkLoginBase`, `apiPost`, `apiGet`, `getLoginQR`, `waitForLogin`, `getUpdates`, `sendMessage`, `sendTyping`
+- `lib.mjs` — `processUpdateBatch`, `randomUin`, `MessageItemType`, `extractText`, `helpText`, `ILinkLoginBase`, `apiPost`, `apiGet`, `getLoginQR`, `waitForLogin`, `getUpdates`, `sendMessage`
+- `qr.mjs` — `encodeQr`, `renderQrToText`
 
-### `integrations/weixin-bridge/test/` (1 files)
+### `integrations/weixin-bridge/test/` (3 files)
 
 - `lib.test.mjs`
+- `qr.test.mjs`
+- `runtime.test.mjs`
+
+### `plugins/chromewhale/` (6 files)
+
+- `LICENSE`
+- `README.md`
+- `kimi.plugin.json`
+- `mcp.json`
+- `package.json`
+- `plugin.json`
+
+### `plugins/chromewhale/bin/` (2 files)
+
+- `chromewhale.mjs`
+- `native-host.mjs`
+
+### `plugins/chromewhale/commands/` (1 files)
+
+- `chromewhale.md`
+
+### `plugins/chromewhale/extension/` (3 files)
+
+- `manifest.json`
+- `panel.css`
+- `panel.html`
+
+### `plugins/chromewhale/extension/media/` (5 files)
+
+- `icon-128.png`
+- `icon-16.png`
+- `icon-32.png`
+- `icon-48.png`
+- `icon.png`
+
+### `plugins/chromewhale/extension/src/` (9 files)
+
+- `background.js`
+- `bridge.js` — `BridgeClient`, `hmacHex`, `BridgeAuthError`, `BridgeImpostorError`, `BridgeSupersededError`, `readyStatus`
+- `browser.js` — `createBrowserTools`, `splitDataUrl`
+- `native.js` — `NATIVE_HOST`, `NativeClient`
+- `page.js` — `snapshotPage`, `inspectRef`, `clickRef`, `typeRef`
+- `panel.js`
+- `policy.js` — `SENSITIVE_AUTOCOMPLETE`, `SENSITIVE_NAME_SOURCE`, `fieldText`, `classifyTarget`, `decisionFor`, `withDecision`, `sensitiveField`
+- `runtime.js` — `RuntimeClient`
+- `sse.js` — `SseParser`, `frameData`, `runtimeEvent`, `bridgeFrame`
+
+### `plugins/chromewhale/mcp/` (1 files)
+
+- `server.mjs`
+
+### `plugins/chromewhale/scripts/` (1 files)
+
+- `build-store.mjs` — `buildStoreZip`
+
+### `plugins/chromewhale/skills/chromewhale/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/chromewhale/src/` (7 files)
+
+- `bridge.mjs` — `createBridge`
+- `cli.mjs` — `runCli`
+- `content.mjs` — `untrusted`, `normalizeContent`
+- `install.mjs` — `STORE_EXTENSION_IDS`, `extensionIdFromKey`, `manifestDirs`, `WINDOWS_REGISTRY_KEYS`, `stableNode`, `installHost`, `removeHost`, `registeredBrowsers`
+- `native.mjs` — `HOST_NAME`, `encodeMessage`, `MessageReader`, `runNativeHost`
+- `pairing.mjs` — `DEFAULT_PORT`, `DEFAULT_HOST`, `stateDir`, `pairingPath`, `resolveEndpoint`, `recordEndpoint`, `readPairing`, `isLoopbackHost`, `tokenMatches`, `bearerOf`, `mac`, `macMatches`
+- `tools.mjs` — `SERVER_NAME`, `SNAPSHOT_CHAR_BUDGET`, `CALL_TIMEOUT_MS`, `TOOLS`, `TOOL_NAMES`, `isTool`, `annotationsFor`, `describeCall`
+
+### `plugins/chromewhale/tests/` (11 files)
+
+- `bridge.test.mjs`
+- `browser.test.mjs`
+- `cli.test.mjs`
+- `content.test.mjs`
+- `native.test.mjs`
+- `page.test.mjs`
+- `pairing.test.mjs`
+- `policy.test.mjs`
+- `server.test.mjs`
+- `sse.test.mjs`
+- `store.test.mjs`
+
+### `plugins/cloudflare/` (3 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
 
 ### `plugins/cloudflare-docs/` (4 files)
 
@@ -168,256 +270,435 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 
 - `SKILL.md`
 
-### `plugins/computer-use/` (11 files)
+### `plugins/cloudflare/commands/` (1 files)
 
-- `CHANGELOG.md`
-- `CONTRIBUTING.md`
+- `cloudflare-preflight.md`
+
+### `plugins/cloudflare/scripts/` (1 files)
+
+- `preflight.mjs` — `stripJsonc`, `parseJsonc`, `parseToml`, `findConfigs`, `loadConfig`, `isIgnored`, `checkConfig`, `runPreflight`
+
+### `plugins/cloudflare/skills/cloudflare-deploy/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/cloudflare/skills/cloudflare-durable-objects/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/cloudflare/skills/cloudflare-pages-to-workers/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/cloudflare/skills/cloudflare-storage/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/cloudflare/skills/cloudflare-workers/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/cloudflare/tests/` (2 files)
+
+- `bundle.test.mjs`
+- `preflight.test.mjs`
+
+### `plugins/design-review/` (3 files)
+
 - `LICENSE`
 - `README.md`
-- `SECURITY.md`
-- `agent.mjs`
-- `kimi.plugin.json`
-- `mcp.json`
-- `package-lock.json`
-- `package.json`
 - `plugin.json`
 
-### `plugins/computer-use/.github/workflows/` (1 files)
+### `plugins/design-review/commands/` (1 files)
 
-- `verify.yml`
+- `design-review.md`
 
-### `plugins/computer-use/app/` (5 files)
+### `plugins/design-review/scripts/` (1 files)
 
-- `background-check.mjs` — `runBackgroundCheck`
-- `daemon.mjs`
-- `install-macos.mjs` — `replaceMacBundle`, `verifySignature`, `verifyReleaseBundle`
-- `node-lock.json`
-- `updates.mjs` — `readUpdateResult`, `newerVersion`, `releaseUpdate`, `checkForUpdate`, `validateReleaseZip`, `prepareUpdate`, `restartWithUpdate`
+- `design-review.mjs` — `parseHtml`, `scanHtml`, `parseColor`, `contrast`, `extractStrings`
 
-### `plugins/computer-use/app/macos/` (4 files)
+### `plugins/design-review/skills/accessibility-audit/` (1 files)
 
-- `control-panel.h`
-- `launcher.c`
-- `node-entitlements.plist`
-- `practice.m`
+- `SKILL.md`
 
-### `plugins/computer-use/assets/` (12 files)
+### `plugins/design-review/skills/ui-critique/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/design-review/skills/ux-copy-review/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/design-review/tests/` (1 files)
+
+- `design-review.test.mjs`
+
+### `plugins/design-review/tests/fixtures/` (2 files)
+
+- `bad.html`
+- `good.html`
+
+### `plugins/github-workflow/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `mcp.json`
+- `plugin.json`
+
+### `plugins/github-workflow/commands/` (1 files)
+
+- `pr.md`
+
+### `plugins/github-workflow/skills/issue-triage/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/github-workflow/skills/pr-review/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/github-workflow/tests/` (1 files)
+
+- `plugin.test.mjs`
+
+### `plugins/linear-workflow/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `mcp.json`
+- `plugin.json`
+
+### `plugins/linear-workflow/commands/` (1 files)
+
+- `linear.md`
+
+### `plugins/linear-workflow/skills/issue-triage/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/linear-workflow/skills/status-update/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/linear-workflow/tests/` (1 files)
+
+- `plugin.test.mjs`
+
+### `plugins/loop/` (3 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+
+### `plugins/loop/commands/` (3 files)
+
+- `cancel-loop.md`
+- `loop-status.md`
+- `loop.md`
+
+### `plugins/loop/hooks/` (1 files)
+
+- `loop.toml`
+
+### `plugins/loop/scripts/` (1 files)
+
+- `loop.mjs` — `DEFAULT_MAX`, `HARD_MAX`, `MAX_AGE_MS`, `STALE_MS`, `MAX_PROMPT_CHARS`, `MAX_UNTIL_CHARS`, `parseLoopArgs`, `stateDir`, `statePath`, `validState`, `readState`, `withLock`
+
+### `plugins/loop/skills/iterate-until-done/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/loop/tests/` (2 files)
+
+- `e2e.test.mjs`
+- `loop.test.mjs`
+
+### `plugins/review-toolkit/` (3 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+
+### `plugins/review-toolkit/agents/` (6 files)
+
+- `review-comments.toml`
+- `review-general.toml`
+- `review-silent-failures.toml`
+- `review-simplifier.toml`
+- `review-test-gaps.toml`
+- `review-type-design.toml`
+
+### `plugins/review-toolkit/commands/` (1 files)
+
+- `review-pr.md`
+
+### `plugins/review-toolkit/skills/review-panel/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/review-toolkit/tests/` (1 files)
+
+- `review-toolkit.test.mjs`
+
+### `plugins/samples/` (1 files)
 
 - `README.md`
-- `icon-dark-256.png`
-- `icon-dark-32.png`
-- `icon-dark-64.png`
-- `icon-dark.svg`
-- `icon-light-256.png`
-- `icon-light-32.png`
-- `icon-light-64.png`
-- `icon-light.svg`
-- `icon-menubar.png`
-- `icon-mono.svg`
-- `icon-source.png`
 
-### `plugins/computer-use/assets/macos/` (4 files)
+### `plugins/samples/claude-sample/` (2 files)
 
-- `codewhale-cu`
-- `dmg-background.png`
-- `dmg-background.svg`
-- `dmg-background@2x.png`
-
-### `plugins/computer-use/commands/` (1 files)
-
-- `computer.md`
-
-### `plugins/computer-use/docker/` (5 files)
-
-- `Dockerfile`
+- `LICENSE`
 - `README.md`
-- `agent-exec.sh`
-- `entrypoint.sh`
-- `run.sh`
 
-### `plugins/computer-use/docs/` (10 files)
+### `plugins/samples/claude-sample/commands/` (1 files)
 
-- `BACKGROUND-20260912.md`
-- `DEMO.md`
-- `DISTRIBUTION.md`
-- `LIMITATIONS.md`
-- `PARITY.md`
-- `PARITY_MATRIX.md`
-- `PORTING.md`
-- `PUBLICATION_REVIEW.md`
-- `RELEASE_CHECKLIST.md`
-- `TROUBLESHOOTING.md`
+- `draft-commit.md`
 
-### `plugins/computer-use/docs/media/` (1 files)
+### `plugins/samples/claude-sample/skills/commit-message/` (1 files)
 
-- `background-check.gif`
+- `SKILL.md`
 
-### `plugins/computer-use/docs/releases/` (5 files)
+### `plugins/samples/dsh-sample/` (4 files)
 
-- `0.3.0.json`
-- `0.3.1.json`
-- `0.4.0.json`
-- `0.5.0.json`
-- `0.6.0.json`
-
-### `plugins/computer-use/integrations/dsh/` (3 files)
-
+- `LICENSE`
 - `README.md`
 - `cordis.patch.yml`
 - `package.json`
 
-### `plugins/computer-use/mcp/` (1 files)
+### `plugins/samples/dsh-sample/mcp/` (1 files)
 
 - `server.mjs`
 
-### `plugins/computer-use/parity/` (7 files)
-
-- `darwin-probe.m`
-- `tasks.darwin.json`
-- `tasks.json`
-- `tasks.model-native.json`
-- `tasks.win32.json`
-- `thresholds.json`
-- `win32-probe.ps1`
-
-### `plugins/computer-use/parity/agents/` (2 files)
-
-- `codewhale-native.md`
-- `kimi-native.md`
-
-### `plugins/computer-use/parity/fixtures/` (4 files)
-
-- `activate-macos.m`
-- `browser.html`
-- `native-macos.m`
-- `native.py` — `oracle`, `mark`, `apply`, `on_select`, `sq_center`, `down`, `move`, `up`, `open_dialog`, `new_window`, `report_selection`, `keys`
-
-### `plugins/computer-use/parity/results/` (12 files)
-
-- `background-control-darwin-2026-09-12.json`
-- `background-input-darwin-2026-09-07.json`
-- `darwin-aqua-2026-09-07-run2.json`
-- `darwin-aqua-2026-09-07-run3.json`
-- `darwin-aqua-2026-09-07.json`
-- `darwin-aqua-2026-09-15.json`
-- `improvement-log.md`
-- `linux-x11-2026-09-06.json`
-- `linux-xvfb-isolated-2026-09-07.json`
-- `linux-xvfb-isolated-2026-09-16.json`
-- `native-text-comparison-darwin-2026-09-07.json`
-- `public-browser-comparison-darwin-2026-09-07.json`
-
-### `plugins/computer-use/scripts/` (16 files)
-
-- `background-input.mjs`
-- `build-app.mjs` — `RUNTIME_ENTRIES`, `MAC_BUNDLE`, `LINUX_DIR`, `WIN_DIR`, `macSigningIdentity`, `timestampArg`, `signMacCode`, `macLauncher`, `buildMac`, `desktopEntry`, `buildLinux`, `buildWindows`
-- `build-icons.mjs` — `ICON_NAME`, `buildIcons`
-- `check-receipts.mjs`
-- `demo.mjs`
-- `install-app.mjs` — `installApp`, `removeApp`
-- `package-dmg.mjs`
-- `package-macos.mjs`
-- `parity-matrix.mjs`
-- `parity-run.mjs`
-- `prepare-node-runtime.mjs` — `verifyNodeArchive`, `nodeTarget`, `prepareNodeRuntime`
-- `render-branding.mjs`
-- `smoke.mjs`
-- `verify-background-macos.mjs`
-- `verify-bundle.mjs`
-- `verify-macos.mjs`
-
-### `plugins/computer-use/scripts/lib/` (7 files)
-
-- `desktop-darwin.mjs` — `createDesktop`
-- `desktop-win32.mjs` — `createDesktop`
-- `desktop-x11.mjs` — `createDesktop`
-- `model-trials.mjs` — `modelProfile`, `qualifyModelTrials`
-- `parity-oracle.mjs` — `observation`, `checkExpect`
-- `png.mjs` — `decodePng`, `encodePng`, `crop`, `resize`, `roundedMask`, `pixel`
-- `sh.mjs` — `sh`
-
-### `plugins/computer-use/skills/computer-use/` (1 files)
+### `plugins/samples/dsh-sample/skills/dsh-sample-notes/` (1 files)
 
 - `SKILL.md`
 
-### `plugins/computer-use/skills/computer-use/references/` (2 files)
+### `plugins/samples/hello-extension/` (4 files)
 
-- `quick-reference.md`
-- `refusal-codes.md`
+- `LICENSE`
+- `README.md`
+- `hello.mts`
+- `plugin.json`
 
-### `plugins/computer-use/skills/recording/` (1 files)
+### `plugins/samples/tests/` (1 files)
+
+- `samples.test.mjs`
+
+### `plugins/skills-dev-process/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+- `provenance.json`
+
+### `plugins/skills-dev-process/skills/debug/` (1 files)
 
 - `SKILL.md`
 
-### `plugins/computer-use/src/` (12 files)
+### `plugins/skills-dev-process/skills/handoff/` (1 files)
 
-- `app-handler.mjs` — `ALLOWED`, `controlStatus`, `setControlMode`, `releaseSessionInput`, `closeSession`, `reopenSession`, `closeAllSessions`, `summarizeSessions`, `handle`
-- `app-socket.mjs` — `PLUGIN_ROOT`, `APP_ID`, `APP_NAME`, `APP_VERSION`, `socketPath`, `registrationPath`, `runInfoPath`, `readRegistration`, `writeRegistration`, `appRequest`, `openAppSession`, `appSessionRequest`
-- `browser-cdp.mjs` — `checkBrowserUrl`, `findBrowserApp`, `createBrowser`
-- `consent.mjs` — `appKeys`, `parseAppArg`, `decisionFor`, `record`, `alias`, `revoke`, `foregroundDecision`, `recordForeground`, `revokeForeground`, `status`, `dropSession`
-- `exec.mjs` — `currentSignal`, `withSignal`, `throwIfAborted`, `wait`, `run`, `runInputLease`, `runOk`, `ExecError`, `have`, `trim`, `tryJson`
-- `png-size.mjs` — `pngSize`
-- `registry.mjs` — `RegistryError`, `stateDir`, `load`, `save`, `list`, `get`, `active`, `switchTo`, `register`, `remove`
-- `remote-runtime.mjs`
-- `spawn.mjs` — `SPAWN_LABEL`, `SESSION_LABEL`, `COMPUTER_LABEL`, `DEFAULT_IMAGE`, `dockerAvailable`, `spawnDockerComputer`, `destroyDockerComputer`, `destroySessionSpawns`
-- `tools.mjs` — `TOOLS`, `TOOL_NAMES`, `REQUIRED_ARGS`, `ELEMENT_ONLY_TARGET`, `READ_ONLY_TOOLS`, `REMOTE_TOOLS`, `BACKEND_METHOD`, `MERGED_EXPANSION`, `parseGrant`, `OBSERVATION_TOOLS`, `resolveTool`
-- `trajectory.mjs` — `trajectoriesDir`, `isTrajectoryTool`, `createRecorder`, `readTrajectory`, `listTrajectories`, `resolveTrajectory`
-- `transport.mjs` — `PLUGIN_ROOT`, `SESSION_ID`, `closeAppSession`, `b64`, `safeRemotePath`, `localExec`, `appExec`, `ensureSshChannel`, `closeSshChannel`, `channelRequest`, `sshExec`, `dockerExec`
+- `SKILL.md`
 
-### `plugins/computer-use/src/backends/` (7 files)
+### `plugins/skills-dev-process/skills/implement/` (1 files)
 
-- `darwin-accessibility.m`
-- `darwin-ocr.h`
-- `darwin-recording.h`
-- `darwin.mjs` — `nativeErrorCode`, `pickMenuElement`, `selectApps`, `leaseVerdict`, `leaseAccounting`, `create`
-- `harmonyos.mjs` — `parseBounds`, `flatten`, `create`
-- `linux.mjs` — `create`
-- `win32.mjs` — `create`
+- `SKILL.md`
 
-### `plugins/computer-use/tests/` (40 files)
+### `plugins/skills-dev-process/skills/interview/` (1 files)
 
-- `app-controls.test.mjs`
-- `app-script.test.mjs`
-- `app-shutdown.test.mjs` — `create`
-- `app-targeting.test.mjs`
-- `app.test.mjs`
-- `backends.test.mjs`
-- `browser-cdp.test.mjs`
-- `check-receipts.test.mjs`
-- `consent.test.mjs`
-- `darwin-ocr.test.mjs`
-- `darwin-recording.test.mjs`
-- `darwin.test.mjs`
-- `exec-transport.test.mjs`
-- `grants.test.mjs`
-- `harmony-route-lifecycle.test.mjs`
-- `input-cancellation.test.mjs`
-- `manifest.test.mjs`
-- `mcp-skills.test.mjs`
-- `model-trials.test.mjs`
-- `parity-matrix.test.mjs`
-- `platform-selectors.test.mjs`
-- `registry.test.mjs`
-- `security-input.test.mjs`
-- `server-payload-budget.test.mjs`
-- `server-protocol.test.mjs`
-- `server-routes.test.mjs` — `create`
-- `server-targets.test.mjs`
-- `server-wire-targets.test.mjs`
-- `session-lifecycle.test.mjs`
-- `spawn.test.mjs`
-- … 10 more
+- `SKILL.md`
 
-### `plugins/computer-use/tests/fixtures/` (8 files)
+### `plugins/skills-dev-process/skills/plan/` (1 files)
 
-- `command-shims.mjs`
-- `darwin-targeting-backend.mjs` — `create`
-- `darwin-targeting.m`
-- `fake-backend.mjs` — `create`
-- `pyatspi.py` — `Node`, `Registry`
-- `selector-backend.mjs` — `calls`, `create`
-- `session-backend.mjs` — `create`
-- `windows-desktop.ps1`
+- `SKILL.md`
+
+### `plugins/skills-dev-process/skills/review/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-dev-process/skills/security-review/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-dev-process/skills/simplify/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-dev-process/skills/test/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-dev-process/skills/verify/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-dev-process/tests/` (1 files)
+
+- `provenance.test.mjs`
+
+### `plugins/skills-docs/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+- `provenance.json`
+
+### `plugins/skills-docs/skills/document/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-docs/skills/docx/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-docs/skills/pdf/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-docs/skills/pptx/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-docs/skills/xlsx/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-docs/tests/` (1 files)
+
+- `provenance.test.mjs`
+
+### `plugins/skills-google/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+- `provenance.json`
+
+### `plugins/skills-google/skills/gmail/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-google/skills/google-calendar/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-google/tests/` (1 files)
+
+- `provenance.test.mjs`
+
+### `plugins/skills-personal/` (4 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+- `provenance.json`
+
+### `plugins/skills-personal/skills/flights/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/image-search/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/money/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/photos/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/podcast/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/shopping/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/spotify/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/skills/tts/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/skills-personal/tests/` (1 files)
+
+- `provenance.test.mjs`
+
+### `plugins/vercel-workflow/` (3 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+
+### `plugins/vercel-workflow/commands/` (1 files)
+
+- `vercel-preflight.md`
+
+### `plugins/vercel-workflow/scripts/` (1 files)
+
+- `preflight.mjs` — `isIgnored`, `parseEnvFile`, `checkProject`, `runPreflight`
+
+### `plugins/vercel-workflow/skills/vercel-deploy/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/vercel-workflow/skills/vercel-env-vars/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/vercel-workflow/skills/vercel-logs-debug/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/vercel-workflow/skills/vercel-nextjs-config/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/vercel-workflow/tests/` (2 files)
+
+- `bundle.test.mjs`
+- `preflight.test.mjs` — `middleware`
+
+### `plugins/web-artifacts-builder/` (3 files)
+
+- `LICENSE`
+- `README.md`
+- `plugin.json`
+
+### `plugins/web-artifacts-builder/commands/` (1 files)
+
+- `artifact.md`
+
+### `plugins/web-artifacts-builder/scripts/` (1 files)
+
+- `wab.mjs` — `scaffold`, `checkHtml`, `build`, `startPreview`
+
+### `plugins/web-artifacts-builder/skills/web-artifacts-builder/` (1 files)
+
+- `SKILL.md`
+
+### `plugins/web-artifacts-builder/templates/react/` (3 files)
+
+- `index.html`
+- `package.json`
+- `vite.config.js`
+
+### `plugins/web-artifacts-builder/templates/react/src/` (3 files)
+
+- `App.jsx` — `App`
+- `index.css`
+- `main.jsx`
+
+### `plugins/web-artifacts-builder/templates/single/` (1 files)
+
+- `index.html`
+
+### `plugins/web-artifacts-builder/tests/` (1 files)
+
+- `wab.test.mjs`
 
 ### `plugins/whalesong/` (4 files)
 
@@ -488,15 +769,16 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 - `safety.test.mjs`
 - `write-boundaries.test.mjs` — `x`
 
-### `scripts/` (7 files)
+### `scripts/` (8 files)
 
-- `check-cu-sync.mjs`
 - `check-marketplace.mjs`
 - `connections.mjs`
 - `integrations.mjs`
 - `package-plugin.mjs` — `ROOT`, `packagePlugin`
 - `skills.mjs`
+- `sync-skill-plugins.mjs`
 - `test-integrations.mjs`
+- `test-plugins.mjs`
 
 ### `skills/` (4 files)
 
@@ -693,16 +975,21 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 
 - `SKILL.md`
 
-### `tests/` (1 files)
+### `tests/` (4 files)
 
+- `catalog-wiring.test.mjs`
+- `connections.test.mjs`
+- `keyword-stoplist.test.mjs`
 - `repository.test.mjs` — `value`
 
-### `tests/browser/` (1 files)
+### `tests/browser/` (2 files)
 
+- `chromewhale.spec.mjs`
 - `viewer.spec.mjs` — `mode`
 
 ## Internal edges
 
+- `integrations/bridge-core/test/approvals.test.mjs` → `../src/lib.mjs`, `../../wecom-bridge/src/lib.mjs`
 - `integrations/bridge-core/test/lib.test.mjs` → `../src/lib.mjs`
 - `integrations/bridge-core/test/recovery-policy.test.mjs` → `../src/lib.mjs`
 - `integrations/feishu-bridge/scripts/validate-config.mjs` → `../src/lib.mjs`
@@ -719,69 +1006,42 @@ _326 files. Regenerate with `whalewiki map` — deterministic, no model._
 - `integrations/wecom-bridge/src/index.mjs` → `./lib.mjs`, `../../bridge-core/src/lib.mjs`
 - `integrations/wecom-bridge/src/lib.mjs` → `../../bridge-core/src/lib.mjs`
 - `integrations/wecom-bridge/test/lib.test.mjs` → `../src/lib.mjs`
-- `integrations/weixin-bridge/src/index.mjs` → `./lib.mjs`, `../../bridge-core/src/lib.mjs`
+- `integrations/weixin-bridge/src/index.mjs` → `./lib.mjs`, `./qr.mjs`, `../../bridge-core/src/lib.mjs`
 - `integrations/weixin-bridge/src/lib.mjs` → `../../bridge-core/src/lib.mjs`
-- `integrations/weixin-bridge/test/lib.test.mjs` → `../src/lib.mjs`
-- `plugins/computer-use/agent.mjs` → `./src/app-handler.mjs`
-- `plugins/computer-use/app/background-check.mjs` → `../src/app-handler.mjs`
-- `plugins/computer-use/app/daemon.mjs` → `../src/app-handler.mjs`, `./background-check.mjs`, `./updates.mjs`, `../src/app-socket.mjs`, `../src/registry.mjs`
-- `plugins/computer-use/app/updates.mjs` → `./install-macos.mjs`, `../src/app-socket.mjs`, `../src/registry.mjs`
-- `plugins/computer-use/mcp/server.mjs` → `../src/registry.mjs`, `../src/consent.mjs`, `../src/transport.mjs`, `../src/spawn.mjs`, `../src/tools.mjs`, `../src/exec.mjs`, `../src/app-socket.mjs`, `../src/trajectory.mjs`
-- `plugins/computer-use/scripts/background-input.mjs` → `./lib/sh.mjs`
-- `plugins/computer-use/scripts/build-app.mjs` → `../src/app-socket.mjs`, `./build-icons.mjs`
-- `plugins/computer-use/scripts/build-icons.mjs` → `./lib/png.mjs`
-- `plugins/computer-use/scripts/demo.mjs` → `../app/background-check.mjs`
-- `plugins/computer-use/scripts/install-app.mjs` → `../src/app-socket.mjs`, `./build-app.mjs`, `../app/install-macos.mjs`
-- `plugins/computer-use/scripts/lib/desktop-darwin.mjs` → `./sh.mjs`, `../../src/app-socket.mjs`
-- `plugins/computer-use/scripts/lib/desktop-win32.mjs` → `./sh.mjs`
-- `plugins/computer-use/scripts/lib/desktop-x11.mjs` → `./sh.mjs`
-- `plugins/computer-use/scripts/lib/model-trials.mjs` → `./parity-oracle.mjs`
-- `plugins/computer-use/scripts/package-dmg.mjs` → `../src/app-socket.mjs`, `../app/install-macos.mjs`, `./build-app.mjs`
-- `plugins/computer-use/scripts/package-macos.mjs` → `../src/app-socket.mjs`, `../app/install-macos.mjs`, `../app/updates.mjs`
-- `plugins/computer-use/scripts/parity-run.mjs` → `./lib/sh.mjs`, `./lib/parity-oracle.mjs`
-- `plugins/computer-use/src/app-handler.mjs` → `./remote-runtime.mjs`, `./exec.mjs`
-- `plugins/computer-use/src/app-socket.mjs` → `./registry.mjs`, `./tools.mjs`, `./exec.mjs`
-- `plugins/computer-use/src/backends/darwin.mjs` → `../exec.mjs`, `../registry.mjs`, `../browser-cdp.mjs`
-- `plugins/computer-use/src/backends/harmonyos.mjs` → `../exec.mjs`
-- `plugins/computer-use/src/backends/linux.mjs` → `../exec.mjs`, `../png-size.mjs`, `../browser-cdp.mjs`
-- `plugins/computer-use/src/backends/win32.mjs` → `../exec.mjs`, `../browser-cdp.mjs`
-- `plugins/computer-use/src/browser-cdp.mjs` → `./exec.mjs`, `./registry.mjs`
-- `plugins/computer-use/src/consent.mjs` → `./registry.mjs`
-- `plugins/computer-use/src/remote-runtime.mjs` → `./exec.mjs`
-- `plugins/computer-use/src/spawn.mjs` → `./exec.mjs`, `./transport.mjs`
-- `plugins/computer-use/src/trajectory.mjs` → `./registry.mjs`
-- `plugins/computer-use/src/transport.mjs` → `./exec.mjs`, `./app-socket.mjs`
-- `plugins/computer-use/tests/app-controls.test.mjs` → `../src/app-socket.mjs`
-- `plugins/computer-use/tests/app-script.test.mjs` → `../src/app-handler.mjs`
-- `plugins/computer-use/tests/app-shutdown.test.mjs` → `../src/app-socket.mjs`
-- `plugins/computer-use/tests/app-targeting.test.mjs` → `../src/app-handler.mjs`
-- `plugins/computer-use/tests/backends.test.mjs` → `../src/backends/harmonyos.mjs`
-- `plugins/computer-use/tests/browser-cdp.test.mjs` → `../src/browser-cdp.mjs`
-- `plugins/computer-use/tests/consent.test.mjs` → `../src/consent.mjs`, `../src/spawn.mjs`
-- `plugins/computer-use/tests/darwin-ocr.test.mjs` → `../src/backends/darwin.mjs`
-- `plugins/computer-use/tests/darwin-recording.test.mjs` → `../src/backends/darwin.mjs`, `../src/exec.mjs`
-- `plugins/computer-use/tests/darwin.test.mjs` → `../src/backends/darwin.mjs`, `../src/exec.mjs`
-- `plugins/computer-use/tests/exec-transport.test.mjs` → `../src/exec.mjs`, `../src/transport.mjs`, `../src/app-socket.mjs`
-- `plugins/computer-use/tests/fixtures/darwin-targeting-backend.mjs` → `../../src/exec.mjs`, `../../src/backends/darwin.mjs`
-- `plugins/computer-use/tests/fixtures/selector-backend.mjs` → `../../src/backends/linux.mjs`, `../../src/backends/harmonyos.mjs`
-- `plugins/computer-use/tests/fixtures/session-backend.mjs` → `../../src/exec.mjs`
-- `plugins/computer-use/tests/harmony-route-lifecycle.test.mjs` → `../src/backends/harmonyos.mjs`, `../src/exec.mjs`
-- `plugins/computer-use/tests/input-cancellation.test.mjs` → `../src/backends/win32.mjs`, `../src/backends/linux.mjs`, `../src/exec.mjs`
-- `plugins/computer-use/tests/mcp-skills.test.mjs` → `../src/tools.mjs`, `../src/backends/darwin.mjs`
-- `plugins/computer-use/tests/model-trials.test.mjs` → `../scripts/lib/model-trials.mjs`, `../scripts/lib/parity-oracle.mjs`
-- `plugins/computer-use/tests/platform-selectors.test.mjs` → `../src/app-handler.mjs`, `../src/backends/linux.mjs`, `./fixtures/selector-backend.mjs`
-- `plugins/computer-use/tests/security-input.test.mjs` → `../src/backends/win32.mjs`, `../src/backends/harmonyos.mjs`, `../src/backends/linux.mjs`
-- `plugins/computer-use/tests/server-routes.test.mjs` → `../src/transport.mjs`, `./src/registry.mjs`
-- `plugins/computer-use/tests/tool-merge.test.mjs` → `../src/tools.mjs`
-- `plugins/computer-use/tests/updates.test.mjs` → `../app/updates.mjs`, `../app/install-macos.mjs`
-- `plugins/computer-use/tests/wait-for.test.mjs` → `../src/transport.mjs`
-- `plugins/computer-use/tests/win32-desktop.test.mjs` → `../src/backends/win32.mjs`
-- `plugins/computer-use/tests/win32-input.test.mjs` → `../src/backends/win32.mjs`, `../src/exec.mjs`
-- `plugins/computer-use/tests/win32-native-contract.test.mjs` → `../src/backends/win32.mjs`
-- `plugins/computer-use/tests/win32-package.test.mjs` → `../scripts/build-app.mjs`
-- `plugins/computer-use/tests/win32-targeting.test.mjs` → `../src/backends/win32.mjs`
+- `integrations/weixin-bridge/test/lib.test.mjs` → `../../bridge-core/src/lib.mjs`, `../src/lib.mjs`
+- `integrations/weixin-bridge/test/qr.test.mjs` → `../src/qr.mjs`
+- `plugins/chromewhale/bin/chromewhale.mjs` → `../src/cli.mjs`
+- `plugins/chromewhale/bin/native-host.mjs` → `../src/native.mjs`
+- `plugins/chromewhale/extension/src/bridge.js` → `./sse.js`
+- `plugins/chromewhale/extension/src/browser.js` → `./policy.js`, `./page.js`
+- `plugins/chromewhale/extension/src/panel.js` → `./runtime.js`, `./bridge.js`, `./native.js`, `./browser.js`, `./policy.js`
+- `plugins/chromewhale/extension/src/runtime.js` → `./sse.js`
+- `plugins/chromewhale/mcp/server.mjs` → `../src/bridge.mjs`, `../src/content.mjs`, `../src/pairing.mjs`, `../src/tools.mjs`
+- `plugins/chromewhale/src/bridge.mjs` → `./pairing.mjs`, `./tools.mjs`
+- `plugins/chromewhale/src/cli.mjs` → `./install.mjs`, `./pairing.mjs`
+- `plugins/chromewhale/src/install.mjs` → `./native.mjs`
+- `plugins/chromewhale/src/native.mjs` → `../extension/src/bridge.js`, `./pairing.mjs`
+- `plugins/chromewhale/tests/bridge.test.mjs` → `../src/bridge.mjs`, `../src/pairing.mjs`
+- `plugins/chromewhale/tests/browser.test.mjs` → `../extension/src/browser.js`, `../extension/src/page.js`
+- `plugins/chromewhale/tests/cli.test.mjs` → `../src/bridge.mjs`, `../src/pairing.mjs`, `../src/cli.mjs`, `../src/install.mjs`
+- `plugins/chromewhale/tests/content.test.mjs` → `../src/content.mjs`
+- `plugins/chromewhale/tests/native.test.mjs` → `../src/bridge.mjs`, `../src/native.mjs`, `../src/pairing.mjs`
+- `plugins/chromewhale/tests/page.test.mjs` → `../extension/src/page.js`
+- `plugins/chromewhale/tests/pairing.test.mjs` → `../src/pairing.mjs`
+- `plugins/chromewhale/tests/policy.test.mjs` → `../extension/src/policy.js`
+- `plugins/chromewhale/tests/server.test.mjs` → `../src/tools.mjs`
+- `plugins/chromewhale/tests/sse.test.mjs` → `../extension/src/sse.js`
+- `plugins/chromewhale/tests/store.test.mjs` → `../scripts/build-store.mjs`
+- `plugins/cloudflare/tests/preflight.test.mjs` → `../scripts/preflight.mjs`
+- `plugins/design-review/tests/design-review.test.mjs` → `../scripts/design-review.mjs`
+- `plugins/loop/tests/loop.test.mjs` → `../scripts/loop.mjs`
+- `plugins/vercel-workflow/tests/preflight.test.mjs` → `../scripts/preflight.mjs`
+- `plugins/web-artifacts-builder/templates/react/src/main.jsx` → `./App.jsx`
+- `plugins/web-artifacts-builder/tests/wab.test.mjs` → `../scripts/wab.mjs`, `./theme.css`
 - `plugins/whalewiki/mcp/server.mjs` → `../scripts/whalewiki.mjs`
 - `plugins/whalewiki/tests/engine.test.mjs` → `../index`, `../index`
 - `plugins/whalewiki/tests/safety.test.mjs` → `../scripts/whalewiki.mjs`
+- `tests/browser/chromewhale.spec.mjs` → `../../plugins/chromewhale/src/install.mjs`
 - `tests/browser/viewer.spec.mjs` → `../../plugins/whalewiki/scripts/whalewiki.mjs`
+- `tests/catalog-wiring.test.mjs` → `../scripts/package-plugin.mjs`
 - `tests/repository.test.mjs` → `../scripts/package-plugin.mjs`

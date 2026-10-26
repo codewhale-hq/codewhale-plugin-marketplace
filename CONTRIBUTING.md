@@ -4,6 +4,8 @@ Choose the smallest surface that completes the user's job:
 
 - `plugins/<name>/`: installable tools, commands or skills. Include `plugin.json`,
   a concise README, license, exact prerequisites and the matching catalog row.
+  Independently released plugins may instead use a canonical remote archive
+  source; keep their implementation and release checks in their owning repository.
 - `connections/`: service endpoints, host-owned auth and setup guidance. No
   credential values and no installable wrapper that only promises a login.
 - `integrations/<name>/`: inbound messages/webhooks connected to the existing

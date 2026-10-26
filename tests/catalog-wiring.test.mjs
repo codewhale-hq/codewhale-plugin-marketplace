@@ -6,7 +6,8 @@ import {execFileSync} from 'node:child_process';
 import {ROOT} from '../scripts/package-plugin.mjs';
 
 const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, 'marketplace.json'), 'utf8'));
-const entries = catalog.plugins.map((p) => ({...p, dir: path.join(ROOT, p.source.replace(/^path:/, ''))}));
+const entries = catalog.plugins.map((p) => ({...p, dir: p.source.startsWith('path:') ? path.join(ROOT, p.source.slice(5)) : null}));
+const localEntries = entries.filter((p) => p.dir);
 const read = (f) => fs.readFileSync(f, 'utf8');
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
@@ -17,11 +18,15 @@ function walk(dir, out = []) {
   return out;
 }
 
-test('every catalog entry points at a bundle whose manifest name and version match', () => {
+test('catalog entries use valid remote sources or matching local bundles', () => {
   for (const p of entries) {
-    const manifest = JSON.parse(read(path.join(p.dir, 'plugin.json')));
-    assert.equal(manifest.name, p.name, `${p.source}: manifest name`);
-    assert.equal(manifest.version, p.version, `${p.name}: catalog version`);
+    if (p.dir) {
+      const manifest = JSON.parse(read(path.join(p.dir, 'plugin.json')));
+      assert.equal(manifest.name, p.name, `${p.source}: manifest name`);
+      assert.equal(manifest.version, p.version, `${p.name}: catalog version`);
+    } else {
+      assert.equal(new URL(p.source).protocol, 'https:', `${p.name}: remote source`);
+    }
     assert.ok(p.display_name && p.description, `${p.name}: display_name and description`);
     const homepage = new URL(p.homepage);
     if (homepage.hostname === 'github.com' && homepage.pathname.includes('/codewhale-plugin-marketplace')) {
@@ -35,7 +40,7 @@ test('every catalog entry points at a bundle whose manifest name and version mat
 
 test('every plugin bundle under plugins/ is cataloged, except documented repository-only fixtures', () => {
   const relative = (dir) => path.relative(ROOT, dir).split(path.sep).join('/');
-  const listed = new Set(entries.map((p) => relative(p.dir)));
+  const listed = new Set(localEntries.map((p) => relative(p.dir)));
   const found = [];
   for (const f of walk(path.join(ROOT, 'plugins'))) {
     if (path.basename(f) === 'plugin.json' && !f.includes(`${path.sep}tests${path.sep}`)) found.push(relative(path.dirname(f)));
@@ -49,7 +54,7 @@ test('every plugin bundle under plugins/ is cataloged, except documented reposit
 
 test('a qualified skill reference names the plugin that actually ships that skill', () => {
   const owners = new Map();
-  for (const p of entries) {
+  for (const p of localEntries) {
     const root = p.source === 'path:skills' ? p.dir : path.join(p.dir, 'skills');
     if (!fs.existsSync(root)) continue;
     for (const e of fs.readdirSync(root, {withFileTypes: true})) {
@@ -58,8 +63,8 @@ test('a qualified skill reference names the plugin that actually ships that skil
   }
   const plugins = new Set(entries.map((p) => p.name));
   const bad = [];
-  for (const p of entries) {
-    if (['computer-use', 'chromewhale', 'whalewiki', 'whalesong'].includes(p.name) || p.source === 'path:skills') continue;
+  for (const p of localEntries) {
+    if (['chromewhale', 'whalewiki', 'whalesong'].includes(p.name) || p.source === 'path:skills') continue;
     for (const f of walk(p.dir).filter((x) => /\.(md|toml)$/.test(x))) {
       for (const m of read(f).matchAll(/(?<![\w/.-])([a-z][a-z0-9]*(?:-[a-z0-9]+)*):([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![\w:/-])/g)) {
         const [, prefix, skill] = m;
@@ -75,7 +80,7 @@ test('a qualified skill reference names the plugin that actually ships that skil
 
 test('install and review commands in a plugin README name the installed plugin id', () => {
   const bad = [];
-  for (const p of entries) {
+  for (const p of localEntries) {
     const readme = path.join(p.dir, 'README.md');
     if (!fs.existsSync(readme) || p.source === 'path:skills') continue;
     for (const m of read(readme).matchAll(/\/plugin (?:show|trust|enable|disable|uninstall|update) ([a-z][a-z0-9-]*)/g)) {

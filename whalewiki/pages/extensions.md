@@ -4,79 +4,23 @@ This repository's catalog lists nineteen installable bundles. The first six are
 Computer Use, Codewhale for Chrome, WhaleSong, WhaleWiki, Cloudflare docs and the
 bundled Codewhale skills. The October 2026 wave added thirteen more (see
 "What the October wave added"). The catalog declares
-relative sources, stable IDs, human-readable names and versions. An entry offers installation; it does not grant
+local or remote sources, stable IDs, human-readable names and versions. An entry offers installation; it does not grant
 capabilities or establish a service login.
 
-Computer Use source 0.12.1 is unreleased; the stable macOS release remains 0.12.0. It combines app
-scripting, accessibility and window-routed input, CDP browser control, and
-session-owned Linux desktops through Docker. Local apps require per-app
-consent; foreground activation needs a separate decision. Shared input waits
-for a quiet hardware-input window and refuses `user_busy` if the person
-remains active. Input arriving mid-action is still a documented limitation.
+Computer Use (`computer-use`) is an independently released plugin. Its catalog
+entry points to the canonical repository's stable
+[plugin archive](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/latest/download/computer-use.tar.gz).
+Codewhale's ordinary installer downloads and reviews that bundle; its Update
+action checks the same source. This repository carries no copy of the runtime
+and does not build or test it. The offline catalog check validates the source
+syntax, not the remote bytes or publication status.
 
-In 0.12.0 the agent has its own pointer on macOS: clicks, hover, drag and
-scroll go to the bound app's window as window-routed events in every mode,
-and the helper refuses any request to drive the person's cursor
-(`real_pointer_refused`). It also adds the shared-computer attach mode for
-Codewhale Computers (browser attach, control lease gate, turn hold) and a
-safety floor: `app_script` refuses shell and keystroke escapes, irreversible
-clicks need an explicit confirmation, and consent is never batched or replayed.
-
-The 0.12.1 server supplies its concise packaged operating guide through standard
-MCP `initialize.instructions`; resources expose the same bytes and detailed
-operations, refusal recovery and recording references. Host delivery is a separate
-Engine responsibility. `/computer setup` distinguishes local apps, signed-in
-Chrome and an isolated browser; `request_access` identifies the actual helper
-and permission owner. Bundled macOS builds do not require a second helper install.
-
-The October 8 source update adds `get_app_state {since:state_id}` diffs of the
-same complete view, with a full baseline when scope changes or a walk is
-incomplete. `run_actions` can find a unique named control immediately before
-each step and optionally return final state. Ambiguity, stale targets and wait
-timeouts stop the batch; receipts retain completed effects so the agent does
-not replay sent input. These paths reuse the existing permission and target
-checks. Native macOS fixture checks establish the intended edit and Apply
-effect; installed-model acceptance and human coexistence remain separate gates.
-
-The current source returns a `raster_id` with screenshots, OCR rasters and zooms.
-Carry that ID in pixel targets and as the parent of a zoom; use the zoom's new
-ID for coordinates in the child image. OCR targets already include their pin.
-A replaced capture, successful app launch or computer route retires the context;
-`raster_stale` requires another observation, never retrying without the ID.
-Pins remain reusable while current and optional for older clients. Saved
-capture-dependent trajectory steps cannot replay, including old files without
-that marker; never strip or remap a saved ID. The recording resource teaches
-the same contract. Pins detect capture replacement, not a changed UI or
-successful input. The
-[Cua comparison](../../plugins/computer-use/docs/CUA_PARITY.md) records these
-contract differences and the remaining native and cloud qualification gaps.
-
-The 0.11.3 patch answers `resources/templates/list` with an empty template
-list instead of `-32601`. The server publishes a fixed skill pack and never a
-parameterized URI space, so an empty list is the correct answer and a host that
-probes the method because `resources` is advertised no longer records a
-discovery warning at the start of every session; advertised capabilities are
-unchanged and genuinely unknown methods are still refused. Earlier 0.11.2 work
-fixes uninitialized typing receipts and includes the Docker
-build context in installed app bundles. macOS background actions that require
-a focus lease now refuse before input instead of silently borrowing the user's
-keyboard focus. Linux semantic value edits choose the supported accessibility
-interface, verify readback, and do not retry a refused or uncertain write. The Windows hardening follow-up binds
-UIA actions to observed window/element identities, preserves screenshot origins
-and regions, repairs browser discovery, and supports a bundled Node runtime
-with staged, backup-preserving installs. Canonical Windows CI now runs both
-native input contracts and a controlled desktop acceptance check. Source tests
-and simulated clocks do
-not establish complete Codex parity, clean-machine acceptance, or production
-Linux/Windows readiness. The marketplace remains enabled on macOS only.
-
-The 0.12.0 release packages the notarized universal Mac app and an explicitly
-unsigned Windows x64 preview. Linux remains source/Docker-based. A source
-version alone does not establish download availability. The [official setup page](https://codewhale.net/computer-use)
-reports public download availability, and the [release checklist](../../plugins/computer-use/docs/RELEASE_CHECKLIST.md)
-records qualification and remaining final-installed, fresh-grant and upgrade
-checks. Actual isolated model observe/edit/verify and checkpoint Stop/reconnect
-checks passed; physical keyboard coexistence remains open. The existing Engine remains the session and model-loop authority.
+The separate native Mac helper owns OS permissions and the visible computer
+controls. Use the [setup page](https://codewhale.net/computer-use),
+[canonical guidance](https://github.com/codewhale-hq/codewhale-cu-plugin/blob/main/README.md)
+and [release checklist](https://github.com/codewhale-hq/codewhale-cu-plugin/blob/main/docs/RELEASE_CHECKLIST.md)
+for the current installation steps, trust behavior and platform qualification.
+Catalog version metadata alone does not establish release availability.
 
 Codewhale for Chrome (formerly Chromewhale; the plugin id and `/chromewhale` commands keep that name) source 0.4.0 is an unreleased developer preview that also drives a browser, with a separate profile boundary.
 Computer Use owns a Chromium instance it launches under its own
@@ -162,14 +106,13 @@ recognise their formats.
 ## Package before review
 
 From a development checkout, run `npm run package:plugin -- whalewiki` or select
-another catalog name. `packagePlugin` reads Git's working source inventory,
+another local catalog name. Remote release entries are packaged upstream. `packagePlugin` reads Git's working source inventory,
 excludes ignored local artifacts and deleted files, refuses symlinks, and rejects
 a bundle over 5 MiB. It creates `dist/<name>` and refuses to overwrite it.
 Use `--out /another/directory` when building a later revision.
 
-Review the packaged capabilities before trusting and enabling them. Computer
-Use can accumulate local receipts large enough to exceed the host's cap; the
-packager avoids shipping those artifacts. Installation remains a host operation.
+Review the packaged capabilities before trusting and enabling them. The
+packager excludes local artifacts; installation remains a host operation.
 
 ## Find a skill by the job you need done
 
@@ -209,7 +152,7 @@ handoff and inspect the current validation receipt before publication.
 
 ## Source basis
 
-- `marketplace.json`: installable names, versions and source directories.
+- `marketplace.json`: installable names, versions and local or remote sources.
 - `CONTRIBUTING.md`: admission and ownership rules.
 - `scripts/package-plugin.mjs`, `packagePlugin`: source inventory and package guards.
 - `scripts/check-marketplace.mjs`: catalog, manifest, keyword and MCP contract checks.
@@ -217,18 +160,9 @@ handoff and inspect the current validation receipt before publication.
 - `scripts/test-plugins.mjs`, `scripts/sync-skill-plugins.mjs`, `tests/catalog-wiring.test.mjs`: plugin test discovery, domain-skill refresh and catalog wiring checks.
 - `scripts/skills.mjs`, `skills/upstream.json`, `skills/README.md`: active catalog,
   provenance, resource checks and user-facing workflow directory.
-- `plugins/computer-use/docs/DISTRIBUTION.md`: build, notarization and website qualification procedure.
-- `plugins/computer-use/docs/RELEASE_CHECKLIST.md`: qualification record and the human-only publication steps.
-- `plugins/computer-use/docs/releases/0.6.0.json`: packaging and notarization receipt for the signed 0.6.0 macOS build.
-- `plugins/computer-use/CHANGELOG.md`: release record and open qualification gates.
-- `plugins/computer-use/docs/PUBLICATION_REVIEW.md`: review findings, source fixes and platform release gates.
 - `plugins/chromewhale/README.md`: the `page_*` surface, the bridge, and the
   stated split from Computer Use's `browser_*` tools.
 - `plugins/chromewhale/src/tools.mjs`: the advertised tool set and why it does
   not reuse the `browser_*` names.
 
-The current macOS candidate refuses background actions that borrow keyboard focus, including raw pointer fallbacks and modified keys. Accessibility and browser control remain the preferred routes for concurrent use. Native sharing-picker integration and continuous keyboard coexistence qualification remain open.
-
-- `plugins/computer-use/mcp/server.mjs`, `plugins/computer-use/skills/computer-use/SKILL.md`: standard MCP guidance, setup routing and capture identity.
-- `plugins/computer-use/docs/CUA_PARITY.md`: upstream reference pins, capture contract differences and qualification boundaries.
 - `tests/browser/chromewhale.spec.mjs`: Chrome fixture coverage and harness limits.

@@ -16,10 +16,10 @@ test('connection recipes remain outside the installable plugin catalog',()=>{
   const catalog=JSON.parse(fs.readFileSync(path.join(ROOT,'marketplace.json'))),connections=JSON.parse(fs.readFileSync(path.join(ROOT,'connections/catalog.json')));
   for(const c of connections.connections){assert.ok(!catalog.plugins.some(p=>p.name===c.id));assert.equal(new URL(c.url).protocol,'https:');assert.ok(c.docs&&c.status);}
 });
-test('packaged Computer Use fits the host cap and excludes local recordings and receipts',t=>{
+test('packaged WhaleWiki fits the host cap and excludes local artifacts',t=>{
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'cw-package-'));t.after(()=>fs.rmSync(out,{recursive:true,force:true}));
-  const r=packagePlugin('computer-use',out);assert.ok(r.bytes<5*1024*1024);assert.ok(fs.existsSync(path.join(r.path,'mcp/server.mjs')));assert.ok(!fs.existsSync(path.join(r.path,'receipts')));
-  assert.throws(()=>packagePlugin('computer-use',out),/already exists/);
+  const r=packagePlugin('whalewiki',out);assert.ok(r.bytes<5*1024*1024);assert.ok(fs.existsSync(path.join(r.path,'mcp/server.mjs')));assert.ok(!fs.existsSync(path.join(r.path,'receipts')));
+  assert.throws(()=>packagePlugin('whalewiki',out),/already exists/);
 });
 test('packaged WhaleWiki serves six real tools from an unrelated working directory',t=>{
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'cw-wiki-package-'));t.after(()=>fs.rmSync(out,{recursive:true,force:true}));

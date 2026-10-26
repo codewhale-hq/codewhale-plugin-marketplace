@@ -41,8 +41,8 @@
     },
     {
       "name": "computer-use",
-      "source": "path:plugins/computer-use",
-      "version": "0.12.1",
+      "source": "https://github.com/codewhale-hq/codewhale-cu-plugin/releases/latest/download/computer-use.tar.gz",
+      "version": "0.13.0",
       "description": "Control apps with Codewhale. macOS beta; unsigned Windows preview and experimental Linux/Docker support.",
       "homepage": "https://codewhale.net/computer-use",
       "display_name": "Computer Use",

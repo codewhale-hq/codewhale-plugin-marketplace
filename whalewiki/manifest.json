@@ -4,19 +4,19 @@
   "pages": {
     "pages/extensions.md": {
       "title": "Choose and ship an extension",
-      "page_sha256": "11bb8c90670f56418b4f2d864c8d7da65c2984818c7531b91aea0f522111f53c",
+      "page_sha256": "97c68c2e0e4e461babc4852ede57471474412d5ebea160bf4480d71f3bb44c0f",
       "sources": [
         {
           "path": "marketplace.json",
           "root": "repo",
-          "sha256": "03a5875d80a3d32b8c304de20896e8fd30ee7f4c6e7f49793f5c4b28f23351e4",
-          "bytes": 11896
+          "sha256": "4b4e48ab6a687f90d0bfe1a6949abfcdc3355b7d0985d0962eb7c361d22b01dc",
+          "bytes": 11967
         },
         {
           "path": "CONTRIBUTING.md",
           "root": "repo",
-          "sha256": "5ad7f23569b1b525daf2edd373546a2cf9ec6ed0a902f067fc6a0fc96f3ab9e1",
-          "bytes": 2568
+          "sha256": "de9593e8b4a8b4439deb98da53b51aa7d512a8efc3c69ace56252a75f5e67a36",
+          "bytes": 2727
         },
         {
           "path": "scripts/package-plugin.mjs",
@@ -33,38 +33,8 @@
         {
           "path": "package.json",
           "root": "repo",
-          "sha256": "e9f75f8c99bfa52a8a72fd4c7d69f8202ff226839a1398dcadec0ca5882b0801",
-          "bytes": 1421
-        },
-        {
-          "path": "plugins/computer-use/docs/DISTRIBUTION.md",
-          "root": "repo",
-          "sha256": "5dfb7dd4279bcde46c71d8b697d2853165ff8846640cade5c3e3054556eda7fc",
-          "bytes": 6182
-        },
-        {
-          "path": "plugins/computer-use/docs/RELEASE_CHECKLIST.md",
-          "root": "repo",
-          "sha256": "7c75bb3d52e3adf915ea4c7cc951355626235c633876ce87d4a09dd640f380a5",
-          "bytes": 27510
-        },
-        {
-          "path": "plugins/computer-use/docs/releases/0.6.0.json",
-          "root": "repo",
-          "sha256": "58ffad13711097896923a9bb2673084a26555795b3d3d0069b8a7af371218a86",
-          "bytes": 627
-        },
-        {
-          "path": "plugins/computer-use/CHANGELOG.md",
-          "root": "repo",
-          "sha256": "188f3fbc935319728c97f1adcc5e89d41652dff90391071af05471424efc7309",
-          "bytes": 50806
-        },
-        {
-          "path": "plugins/computer-use/docs/PUBLICATION_REVIEW.md",
-          "root": "repo",
-          "sha256": "f580d04b2aee9948b79f8a6192daf39ad687498f0bda05d9f5b33aae660b886e",
-          "bytes": 6239
+          "sha256": "fd2c3ac0fe2ea64035ab0a22f61bf6e1c4d0c2bbd79cdaf255375d78ffc96a93",
+          "bytes": 1270
         },
         {
           "path": "scripts/skills.mjs",
@@ -97,18 +67,6 @@
           "bytes": 7078
         },
         {
-          "path": "plugins/computer-use/mcp/server.mjs",
-          "root": "repo",
-          "sha256": "7e0027af49709ac37df19bcdf52153cca9bb6f89527eccc1bf62217d3281bf38",
-          "bytes": 111999
-        },
-        {
-          "path": "plugins/computer-use/skills/computer-use/SKILL.md",
-          "root": "repo",
-          "sha256": "3e8fcf0c2e117e605eb2f42e36a73276d45ae058f493154734cd0c8ee0d342f8",
-          "bytes": 6412
-        },
-        {
           "path": "tests/browser/chromewhale.spec.mjs",
           "root": "repo",
           "sha256": "56bb3888818b088b0b81e31953824eb892f48f6b684de2277dd9c24a1e9e9ae8",
@@ -127,28 +85,10 @@
           "bytes": 41173
         },
         {
-          "path": "plugins/computer-use/docs/CUA_PARITY.md",
-          "root": "repo",
-          "sha256": "d3930ce92ddceb7cab2d54b6377d22e9da0f484d380eab3aebca8cb5bd590a80",
-          "bytes": 9048
-        },
-        {
-          "path": "plugins/computer-use/src/trajectory.mjs",
-          "root": "repo",
-          "sha256": "657462867997caeedeab5aa5f4ca69dc3a640939bcc6745a3c6d5effbb7a008e",
-          "bytes": 7020
-        },
-        {
-          "path": "plugins/computer-use/skills/recording/SKILL.md",
-          "root": "repo",
-          "sha256": "1e111a6eb6d8116fef983e9162bc289ee3a6c4ee3e16ce74f650f94ef78c5cb2",
-          "bytes": 2167
-        },
-        {
           "path": "scripts/test-plugins.mjs",
           "root": "repo",
-          "sha256": "1bcb55e4026012168b11305f5116dc47be5e5d4cb65be9d6278dd01503288d42",
-          "bytes": 1967
+          "sha256": "d594b8c6b35ec17532cf9161804356e58e1e6c48e6ae34971281e5162bc8d9d4",
+          "bytes": 1918
         },
         {
           "path": "scripts/sync-skill-plugins.mjs",
@@ -159,11 +99,11 @@
         {
           "path": "tests/catalog-wiring.test.mjs",
           "root": "repo",
-          "sha256": "8a284e8c61456b0d5ba04edd374110af0aa0361befbaa3d0eac0d8083a0b527f",
-          "bytes": 5612
+          "sha256": "d2c9b9e288d7499e7354a0ea5c6dd3d1f50b5fe25c2e50f81dc36b9f33417e71",
+          "bytes": 5810
         }
       ],
-      "sealed_at": "2026-10-21T09:07:06.791Z"
+      "sealed_at": "2026-10-26T08:48:56.742Z"
     },
     "pages/wiki-evidence.md": {
       "title": "How WhaleWiki earns a fresh badge",
@@ -300,5 +240,5 @@
       "sealed_at": "2026-10-07T04:42:05.051Z"
     }
   },
-  "updated_at": "2026-10-21T09:07:06.792Z"
+  "updated_at": "2026-10-26T08:48:56.743Z"
 }

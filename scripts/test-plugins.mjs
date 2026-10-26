@@ -17,7 +17,6 @@ import {fileURLToPath} from 'node:url';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const OWNED_ELSEWHERE = new Map([
-  ['computer-use', 'npm run test:computer-use'],
   ['chromewhale', 'npm run test:chromewhale'],
   ['whalewiki', 'npm run test:whalewiki'],
 ]);

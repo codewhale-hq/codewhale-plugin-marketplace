@@ -16,7 +16,7 @@ open `whalewiki/whalewiki.html`. Run `npm run check:wiki` to check its evidence.
 | --- | --- | --- |
 | Understand a repo and find where to change it | [WhaleWiki](plugins/whalewiki/README.md) | Cited explanations, documentation impact lookup, six read tools and an offline reader |
 | Work in the Chrome tab you are looking at | [Codewhale for Chrome](plugins/chromewhale/README.md) | A side panel and `page_*` tools for selected tabs and frames in your own browser and sessions, gated per site. Load the bundled extension unpacked |
-| Operate a computer | [Computer Use](https://codewhale.net/computer-use) | App scripting, isolated Linux desktops and consent controls. Pair it with the [published Mac app (v0.12.0)](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/tag/v0.12.0) for one-grant control; without the app the tools use the host’s own grants. [Source and platform support](plugins/computer-use/README.md) |
+| Operate a computer | [Computer Use](https://codewhale.net/computer-use) | Independently released `computer-use` plugin for app control and isolated desktops. Install the native Mac helper for permissions and Pause, Stop and Revoke controls. [Source and platform support](https://github.com/codewhale-hq/codewhale-cu-plugin) |
 | Look up Cloudflare documentation | [Cloudflare docs](plugins/cloudflare-docs/skills/cloudflare-docs/SKILL.md) | Official remote MCP; no credential required |
 | Build and deploy on Cloudflare | [Cloudflare](plugins/cloudflare/README.md) | Workers, KV, R2, D1, Durable Objects and Pages-to-Workers skills, an offline `/cloudflare-preflight` config check, and a deploy that waits for your approval. Pair with Cloudflare docs |
 | Deploy to Vercel | [Vercel workflow](plugins/vercel-workflow/README.md) | Deploy (preview or production) only after you approve, environment variables, logs, Next.js config and an offline `/vercel-preflight`. Uses your own Vercel CLI login; no MCP server |
@@ -50,12 +50,11 @@ Clone this repository, then add its local catalog in Codewhale:
 A catalog entry does not install or authorize anything. Install the selected
 plugin, review its capabilities, then trust and enable it through Codewhale.
 
-For a development checkout, package the selected plugin first. Local build and
-receipt files can exceed the installer's 5 MiB cap even when the source fits:
+For a development checkout, package a selected local plugin first. Local build
+and receipt files can exceed the installer's 5 MiB cap even when the source fits:
 
 ```sh
 npm run package:plugin -- whalewiki
-npm run package:plugin -- computer-use
 ```
 
 Install the resulting `dist/<name>` directory. Packaging excludes Git-ignored
@@ -63,14 +62,18 @@ artifacts, refuses symlinks, enforces the size cap and never overwrites an exist
 package. Pass `--out /another/output/directory` for a later build. A clean clone
 can use the catalog's `path:` sources directly.
 
-Codewhale carries its own Computer Use runtime and bundled skills. Installing a
-reviewed marketplace copy is optional; inspect existing plugins before adding a
-duplicate. This repository does not replace account connection management.
+Computer Use is released by its [canonical repository](https://github.com/codewhale-hq/codewhale-cu-plugin).
+Its catalog entry downloads `computer-use.tar.gz` from the latest published
+release; the ordinary plugin Update action checks that same source. Review
+changed capabilities before enabling the updated bundle. The native permission
+helper is a separate app, available from the [setup page](https://codewhale.net/computer-use).
+Catalog metadata does not establish that a release asset has been published.
+This repository does not replace account connection management.
 
 ## Develop and verify
 
-Node 22+ and Git are required for repository development. WhaleWiki and Computer
-Use have no runtime npm dependencies. Browser tests use Playwright as a dev tool.
+Node 22+ and Git are required for repository development. WhaleWiki has no
+runtime npm dependencies. Browser tests use Playwright as a dev tool.
 
 ```sh
 npm ci
@@ -96,14 +99,18 @@ four `skills-*` domain plugins (`npm run check:skill-plugins` verifies them). Re
 excluded. `npm run check -- --core ../codewhale` detects upstream drift as well
 as local packaging errors.
 
-`npm run check:cu-sync` compares the Computer Use mirror against sibling source
-checkouts. [Validation evidence](docs/MARKETPLACE-REVIEW-20260919.md) records the current
-source, packaging, local checks and remaining qualification work.
+Computer Use implementation, tests and release packaging live only in its
+[canonical repository](https://github.com/codewhale-hq/codewhale-cu-plugin).
+The catalog check validates its remote source syntax without fetching or
+claiming to verify the released bytes. [Earlier validation evidence](docs/MARKETPLACE-REVIEW-20260919.md)
+records the former mirrored layout and its qualification limits.
 
 Core embeds this catalog for offline browsing and installs each selected bundle
 through its existing reviewed installer. After a catalog or bundle update,
 commit the marketplace change and run `python3 scripts/sync-marketplace.py`
-from the sibling Core checkout. Core's `Marketplace connection` workflow checks
+from the sibling Core checkout. Local entries use pinned marketplace archives;
+remote entries keep their declared source. Later Computer Use releases at its
+stable release address need no catalog change or Engine rebuild. Core's `Marketplace connection` workflow checks
 the pinned catalog on changes and checks current upstream mirrors weekly.
 See Core's [marketplace maintenance guide](https://github.com/codewhale-hq/Codewhale/blob/main/docs/PLUGIN_MARKETPLACE.md)
 for source ownership, update commands, and the publication order. Catalog
