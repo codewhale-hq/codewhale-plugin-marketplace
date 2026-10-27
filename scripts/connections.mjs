@@ -14,6 +14,8 @@ if(command==='list') {
     console.log(`${c.name}: ${c.note}\nOfficial setup: ${c.docs}\n`);
     if(c.status==='client-qualification-needed') {
       console.log('Setup is not qualified for Codewhale. No install command is offered.');
+    } else if(c.auth==='none') {
+      console.log(`codewhale mcp add ${c.id} --url ${c.url}\ncodewhale doctor\n\nNo sign-in is needed. Verify a real read-only tool before calling the connection ready.`);
     } else if(c.auth==='oauth') {
       console.log(`codewhale mcp add ${c.id} --url ${c.url}\ncodewhale mcp login ${c.id}\ncodewhale doctor\n\nRun these in your terminal. Verify a real read-only tool before calling the connection ready.`);
     } else {
