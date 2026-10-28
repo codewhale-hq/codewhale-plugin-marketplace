@@ -13,6 +13,9 @@
   "dependencies": {
     "@wecom/aibot-node-sdk": "^1.0.7"
   },
+  "overrides": {
+    "follow-redirects": "^1.16.1"
+  },
   "engines": {
     "node": ">=18"
   }
