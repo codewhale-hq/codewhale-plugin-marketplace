@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/plugin.json",
+  "name": "studio",
+  "version": "0.1.0",
+  "description": "Plan product shots, ad sets, social clips, storyboards and consistent characters with cost estimates for OpenAI gpt-image-2 and Alibaba Qwen-Image and Wan video on your own key. Paid generation stays closed until Codewhale provides a verified human approval path; MCP file operations remain disabled pending confined file authority.",
+  "author": {
+    "name": "Codewhale"
+  },
+  "license": "MIT",
+  "keywords": [
+    "image-generation",
+    "video-generation",
+    "gpt-image",
+    "qwen-image",
+    "wan",
+    "storyboard"
+  ],
+  "extensions": {
+    "net.codewhale": {
+      "display_name": "Studio",
+      "skills": {
+        "path": "skills"
+      },
+      "when": {
+        "binaries": [
+          "node"
+        ],
+        "os": [
+          "macos",
+          "linux",
+          "windows"
+        ]
+      }
+    }
+  }
+}

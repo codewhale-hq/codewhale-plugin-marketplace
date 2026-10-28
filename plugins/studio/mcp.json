@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/mcp.json",
+  "mcpServers": {
+    "studio": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/server.mjs", "--providers", "placeholder"],
+      "extensions": { "net.codewhale": { "execute_timeout": 300 } },
+      "cwd": "."
+    },
+    "studio-openai": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/server.mjs", "--providers", "openai"],
+      "extensions": { "net.codewhale": { "execute_timeout": 300 } },
+      "cwd": "."
+    },
+    "studio-alibaba": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/server.mjs", "--providers", "dashscope"],
+      "extensions": { "net.codewhale": { "execute_timeout": 660 } },
+      "cwd": "."
+    }
+  }
+}

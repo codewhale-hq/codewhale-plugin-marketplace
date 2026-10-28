@@ -160,6 +160,15 @@
       "author": "Codewhale"
     },
     {
+      "name": "studio",
+      "source": "path:plugins/studio",
+      "version": "0.1.0",
+      "description": "Plan images and videos with MCP request previews and cost estimates. Paid generation and MCP file operations are disabled; a human can explicitly run the free placeholder CLI in a trusted workspace.",
+      "homepage": "https://github.com/codewhale-hq/codewhale-plugin-marketplace/tree/main/plugins/studio",
+      "display_name": "Studio",
+      "author": "Codewhale"
+    },
+    {
       "name": "vercel-workflow",
       "source": "path:plugins/vercel-workflow",
       "version": "0.1.0",
