@@ -1,0 +1,11 @@
+date,region,product,units,revenue
+2026-07-01,North,Widget,120,"$2,400.00"
+2026-07-01,South,Widget,80,"$1,600.00"
+2026-07-02,North,Gadget,45,"$2,250.00"
+2026-07-02,West,Widget,200,"$4,000.00"
+2026-07-03,South,Gadget,30,"$1,500.00"
+2026-07-03,West,Gizmo,15,"$3,750.00"
+2026-07-04,North,Gizmo,9,"$2,250.00"
+2026-07-04,East,Widget,,"$0.00"
+2026-07-05,East,Gadget,60,"$3,000.00"
+2026-07-05,West,Gadget,75,"$3,750.00"

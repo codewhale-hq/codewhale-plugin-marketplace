@@ -106,6 +106,15 @@
       ]
     },
     {
+      "name": "office",
+      "source": "path:plugins/office",
+      "version": "0.1.0",
+      "description": "Make real PowerPoint, Excel and Word files and analyze CSV data with Node alone: decks, workbooks with live formulas, reports from Markdown, data profiles and charts, with a rendered check of every page.",
+      "homepage": "https://github.com/codewhale-hq/codewhale-plugin-marketplace/tree/main/plugins/office",
+      "display_name": "Office",
+      "author": "Codewhale"
+    },
+    {
       "name": "review-toolkit",
       "source": "path:plugins/review-toolkit",
       "version": "0.1.0",

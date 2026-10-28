@@ -1,0 +1,14 @@
+{
+  "title": "July sales",
+  "accent": "#0F766E",
+  "sheets": [
+    { "name": "By region", "columns": [ { "header": "Region", "format": "text" }, { "header": "Revenue", "format": "currency" }, { "header": "Units", "format": "integer" }, { "header": "Revenue per unit", "format": "currency" }, { "header": "Share", "format": "percent" } ],
+      "rows": [
+        ["West", 11500, 290, "=B2/C2", "=B2/SUM($B$2:$B$5)"],
+        ["North", 6900, 174, "=B3/C3", "=B3/SUM($B$2:$B$5)"],
+        ["South", 3100, 110, "=B4/C4", "=B4/SUM($B$2:$B$5)"],
+        ["East", 3000, 60, "=B5/C5", "=B5/SUM($B$2:$B$5)"]
+      ],
+      "totals": { "label": "Total", "columns": { "B": "sum", "C": "sum", "E": "sum" } } }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "July sales review",
+  "author": "Codewhale office example",
+  "theme": { "background": "#FFFFFF", "text": "#111827", "accent": "#0F766E", "muted": "#6B7280", "surface": "#F0FDFA" },
+  "slides": [
+    { "layout": "title", "title": "July sales review", "subtitle": "First week, four regions, three products", "footer": "Example data in examples/sales.csv" },
+    { "layout": "stats", "title": "The week in three numbers", "stats": [ { "value": "$24.5k", "label": "Revenue, 1–5 July" }, { "value": "634", "label": "Units sold" }, { "value": "47%", "label": "Of revenue from West" } ], "source": "Source: examples/sales.csv, rows 1–10" },
+    { "layout": "bars", "title": "West carried the week", "unit": "", "bars": [ { "label": "West", "value": 11500, "display": "$11.5k" }, { "label": "North", "value": 6900, "display": "$6.9k" }, { "label": "South", "value": 3100, "display": "$3.1k", "highlight": false }, { "label": "East", "value": 3000, "display": "$3.0k", "highlight": false } ], "source": "Source: office.mjs pivot --by region --value revenue" },
+    { "layout": "image-right", "title": "Gizmo is small but expensive", "bullets": [ "Gizmo: 24 units, **$6.0k** revenue", "Widget sells most units (400) at the lowest price", { "text": "East reported a Widget row with no units", "level": 1 } ], "image": "revenue-by-region.png" },
+    { "layout": "table", "title": "Revenue by region", "header": ["Region", "Revenue", "Days reported"], "rows": [["West", "$11,500", 3], ["North", "$6,900", 3], ["South", "$3,100", 2], ["East", "$3,000", 2]] },
+    { "layout": "two-column", "title": "What to do next", "left": { "heading": "Keep", "bullets": ["West weekend staffing", "Gadget bundle pricing"] }, "right": { "heading": "Fix", "bullets": ["East's missing unit count", "Daily reporting from South and East"] }, "notes": "Ask the East lead about the empty units field before the review." },
+    { "layout": "quote", "quote": "Fix the data before you fix the forecast.", "attribution": "Team rule of thumb" },
+    { "layout": "closing", "title": "Questions?", "subtitle": "Workbook: sales.xlsx · Report: report.docx" }
+  ]
+}

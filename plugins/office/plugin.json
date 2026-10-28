@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/plugin.json",
+  "name": "office",
+  "version": "0.1.0",
+  "description": "Make real PowerPoint, Excel and Word files and analyze CSV data with Node alone: decks with eleven layouts, workbooks with live formulas and totals, reports from Markdown, and data profiles, pivots and charts. Renders every page for a visual check when LibreOffice is installed.",
+  "author": {
+    "name": "Codewhale"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pptx",
+    "xlsx",
+    "docx",
+    "slides",
+    "spreadsheet",
+    "csv"
+  ],
+  "extensions": {
+    "net.codewhale": {
+      "display_name": "Office",
+      "skills": {
+        "path": "skills"
+      },
+      "when": {
+        "binaries": [
+          "node"
+        ],
+        "os": [
+          "macos",
+          "linux",
+          "windows"
+        ]
+      }
+    }
+  }
+}
