@@ -4,13 +4,13 @@
   "pages": {
     "pages/extensions.md": {
       "title": "Choose and ship an extension",
-      "page_sha256": "97c68c2e0e4e461babc4852ede57471474412d5ebea160bf4480d71f3bb44c0f",
+      "page_sha256": "27f9224d311a4b58a632cf7c1c9a1687c6f4fb2b77be89564a24a874be27ce35",
       "sources": [
         {
           "path": "marketplace.json",
           "root": "repo",
-          "sha256": "4b4e48ab6a687f90d0bfe1a6949abfcdc3355b7d0985d0962eb7c361d22b01dc",
-          "bytes": 11967
+          "sha256": "c70c2130c2cd3130099a42282dcdf431a91e85d44dc273499e93da7341b67028",
+          "bytes": 12956
         },
         {
           "path": "CONTRIBUTING.md",
@@ -101,9 +101,21 @@
           "root": "repo",
           "sha256": "d2c9b9e288d7499e7354a0ea5c6dd3d1f50b5fe25c2e50f81dc36b9f33417e71",
           "bytes": 5810
+        },
+        {
+          "path": "plugins/office/README.md",
+          "root": "repo",
+          "sha256": "35444a60cd38b7cee027ca36f59b48416a97af6df790663c20cfe5330c421721",
+          "bytes": 3830
+        },
+        {
+          "path": "plugins/studio/README.md",
+          "root": "repo",
+          "sha256": "6df5fcaccd59767d87e3e595746367692a707a24d119ab4961a80cadd6b1f087",
+          "bytes": 6217
         }
       ],
-      "sealed_at": "2026-10-26T08:48:56.742Z"
+      "sealed_at": "2026-10-29T08:37:17.567Z"
     },
     "pages/wiki-evidence.md": {
       "title": "How WhaleWiki earns a fresh badge",
@@ -138,19 +150,19 @@
     },
     "pages/integrations.md": {
       "title": "Connections and inbound requests",
-      "page_sha256": "9f15e1fe6a27a3b8fe1795f5afdc4f44cf38e713a6a1ec6d4e1116c890cf2ab9",
+      "page_sha256": "aa1e6d491f904a810a13fb6e94f907912f22ed40cb10d248508791e16e5d1cef",
       "sources": [
         {
           "path": "connections/catalog.json",
           "root": "repo",
-          "sha256": "a7522dc4503fe1fb56a3e1e400c66080f291cf3c4a0243c82283238a5ddbf219",
-          "bytes": 3435
+          "sha256": "d6bc75d83e034b7256b3e092ff81342c953bc9be8601273bc4e2fe71d38ae073",
+          "bytes": 15493
         },
         {
           "path": "scripts/connections.mjs",
           "root": "repo",
-          "sha256": "f496b2d1fccc407c29c85ef010c99906729f513207e1d50879bc2ff7c67a9254",
-          "bytes": 1626
+          "sha256": "cc6c570d3226e4d0b0b30f4407dd37f2f00dea6840c0b239371294823be832f5",
+          "bytes": 1831
         },
         {
           "path": "docs/CONNECTIONS.md",
@@ -237,8 +249,8 @@
           "bytes": 12546
         }
       ],
-      "sealed_at": "2026-10-07T04:42:05.051Z"
+      "sealed_at": "2026-10-29T08:37:17.637Z"
     }
   },
-  "updated_at": "2026-10-26T08:48:56.743Z"
+  "updated_at": "2026-10-29T08:37:17.638Z"
 }

@@ -5,6 +5,11 @@ request work. Installation and authentication are separate operations.
 
 ## Outbound service access
 
+The catalog currently declares 43 connection recipes. The Cloudflare docs
+endpoint is supplied by its installable `cloudflare-docs` plugin, so it has no
+duplicate connection recipe. Counts describe catalog entries, not authenticated
+or qualified services.
+
 `npm run connections -- list` shows the service recipes. `show <name>` prints
 documented setup commands or a configuration fragment. `doctor <name>` reports
 local prerequisites without contacting the service, changing configuration or

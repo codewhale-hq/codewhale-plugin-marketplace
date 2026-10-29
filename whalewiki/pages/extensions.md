@@ -1,9 +1,9 @@
 # Choose and ship an extension
 
-This repository's catalog lists nineteen installable bundles. The first six are
+This repository's catalog lists twenty-one installable bundles. The first six are
 Computer Use, Codewhale for Chrome, WhaleSong, WhaleWiki, Cloudflare docs and the
 bundled Codewhale skills. The October 2026 wave added thirteen more (see
-"What the October wave added"). The catalog declares
+"What the October wave added"); Office and Studio are the two later additions. The catalog declares
 local or remote sources, stable IDs, human-readable names and versions. An entry offers installation; it does not grant
 capabilities or establish a service login.
 
@@ -93,6 +93,13 @@ Design review, four domain skill plugins (`skills-docs`, `skills-google`,
 suffix because their bare names are connection-recipe ids, and a test keeps
 recipe ids out of the catalog.
 
+Office (`office`) adds local file workflows for decks, workbooks, documents and
+data analysis through a Node helper. Rendering and recalculation need the external
+programs listed in its guide. Studio (`studio`) is a preview for creative planning
+and request estimates: paid generation and MCP file operations remain disabled.
+A human can run its placeholder CLI in a trusted workspace; catalog presence
+does not enable provider calls. See each plugin's README for its current limits.
+
 The domain skill plugins are byte copies of files in `skills/`. Their
 `provenance.json` pins the same Core commit, and `npm run sync:skills` refreshes
 them through `scripts/sync-skill-plugins.mjs`; `npm run check:skill-plugins`
@@ -153,6 +160,7 @@ handoff and inspect the current validation receipt before publication.
 ## Source basis
 
 - `marketplace.json`: installable names, versions and local or remote sources.
+- `plugins/office/README.md`, `plugins/studio/README.md`: later additions and their execution limits.
 - `CONTRIBUTING.md`: admission and ownership rules.
 - `scripts/package-plugin.mjs`, `packagePlugin`: source inventory and package guards.
 - `scripts/check-marketplace.mjs`: catalog, manifest, keyword and MCP contract checks.
