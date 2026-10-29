@@ -61,8 +61,9 @@ npm run package:plugin -- whalewiki
 
 Install the resulting `dist/<name>` directory. Packaging excludes Git-ignored
 artifacts, refuses symlinks, enforces the size cap and never overwrites an existing
-package. Pass `--out /another/output/directory` for a later build. A clean clone
-can use the catalog's `path:` sources directly.
+package. Install only the directory returned by a successful packaging run: an
+existing `dist/<name>` can contain older code. Pass `--out /another/output/directory`
+for a later build. A clean clone can use the catalog's `path:` sources directly.
 
 Computer Use is released by its [canonical repository](https://github.com/codewhale-hq/codewhale-cu-plugin).
 Its catalog entry downloads `computer-use.tar.gz` from the latest published
