@@ -67,7 +67,7 @@ export const PROVIDERS = {
 
 let allowed = Object.keys(PROVIDERS);
 export function setProviders(list) {
-  for (const id of list) if (!PROVIDERS[id]) throw new Error(`unknown provider '${id}'`);
+  for (const id of list) if (!Object.hasOwn(PROVIDERS, id)) throw new Error(`unknown provider '${id}'`);
   allowed = list;
 }
 
@@ -83,7 +83,7 @@ export function listModels() {
 
 function pickProvider(kind, requested) {
   if (requested) {
-    const p = PROVIDERS[requested];
+    const p = Object.hasOwn(PROVIDERS, requested) ? PROVIDERS[requested] : null;
     if (!p) throw new Error(`unknown provider '${requested}' (use ${Object.keys(PROVIDERS).join(", ")})`);
     if (!p[kind]) throw new Error(`${requested} has no ${kind} models in this plugin`);
     if (!allowed.includes(requested)) throw new Error(`provider '${requested}' is served by the ${serverFor(requested)} MCP server, not this one`);
@@ -278,7 +278,7 @@ function refusePaidGeneration() {
 
 function imageEstimate(provider, model, n, refs) {
   if (provider === "placeholder") return 0;
-  if (provider === "dashscope" && QWEN_PRICE[model]) return n * QWEN_PRICE[model].image + refs * (QWEN_PRICE[model].input_image ?? 0);
+  if (provider === "dashscope" && Object.hasOwn(QWEN_PRICE, model)) return n * QWEN_PRICE[model].image + refs * (QWEN_PRICE[model].input_image ?? 0);
   return null;
 }
 
@@ -343,8 +343,9 @@ export async function generateImage(a, ctx) {
   return { ...quote, files, receipt };
 }
 
-const ffmpeg = () => spawnSync("ffmpeg", ["-version"], { encoding: "utf8" }).status === 0;
-const runFfmpeg = (args) => spawnSync("ffmpeg", args, { encoding: "utf8", timeout: 600000, maxBuffer: 4 * 1024 * 1024 });
+const mediaEnv = () => Object.fromEntries(["PATH", "Path", "PATHEXT", "SystemRoot", "SYSTEMROOT", "WINDIR", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL"].filter((key) => process.env[key] !== undefined).map((key) => [key, process.env[key]]));
+const ffmpeg = () => spawnSync("ffmpeg", ["-version"], { encoding: "utf8", env: mediaEnv() }).status === 0;
+const runFfmpeg = (args) => spawnSync("ffmpeg", args, { encoding: "utf8", env: mediaEnv(), timeout: 600000, maxBuffer: 4 * 1024 * 1024 });
 
 export async function generateVideo(a, ctx) {
   validatePrompt(a);
@@ -446,7 +447,7 @@ export function assembleVideo(a, ctx) {
   args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", file);
   const r = runFfmpeg(args);
   if (r.status !== 0) throw new Error(`ffmpeg failed: ${String(r.stderr ?? r.error?.message ?? "").trim().slice(0, 400)}`);
-  const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { encoding: "utf8", timeout: 60000 });
+  const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { encoding: "utf8", env: mediaEnv(), timeout: 60000 });
   return { file, clips: clips.length, seconds: Number(probe.stdout?.trim()) || null, size: `${w}x${h}` };
 }
 

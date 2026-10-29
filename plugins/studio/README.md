@@ -62,6 +62,10 @@ results are then downloaded without credentials from Alibaba Cloud storage
 policy apply. The placeholder generator makes no provider requests. `ffmpeg` processes
 input media and is not independently sandboxed by this plugin.
 
+The media executables receive only path, temporary-directory, locale and OS
+environment variables, not provider keys. They still run with the user's
+filesystem and network access.
+
 The shell CLI checks paths against its current directory; inputs and outputs
 use workspace-relative paths. MCP file operations are disabled. These checks are not OS isolation: concurrent path
 changes and media processed by `ffmpeg` can cross the intended boundary. Use
