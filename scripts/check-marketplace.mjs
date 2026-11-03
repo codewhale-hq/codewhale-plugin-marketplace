@@ -67,7 +67,7 @@ const STOPLIST = new Set([
   "website",
   "wiki",
 ]);
-const ENTRY_FIELDS = new Set(["name", "source", "description", "version", "homepage", "display_name", "author", "icon", "platforms"]);
+const ENTRY_FIELDS = new Set(["name", "source", "description", "version", "homepage", "display_name", "author", "icon", "platforms", "sha256"]);
 
 const args = process.argv.slice(2);
 const coreIdx = args.indexOf("--core");
@@ -230,6 +230,7 @@ function checkSkillRoots(bundleDir, manifest) {
 }
 
 function checkIdentity(entry, label) {
+  if (entry.sha256 !== undefined && (typeof entry.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(entry.sha256) || typeof entry.source !== "string" || !entry.source.startsWith("https://"))) fail(`${label}: sha256 must pin an HTTPS archive with 64 lowercase hexadecimal characters`);
   for (const field of ["display_name", "author"]) if (entry[field] !== undefined && (typeof entry[field] !== "string" || !entry[field].trim() || entry[field].length > 128 || /[\r\n]/.test(entry[field]))) fail(`${label}: invalid ${field}`);
   if (entry.platforms !== undefined && (!Array.isArray(entry.platforms) || entry.platforms.length > 3 || entry.platforms.some(os => !["macos", "windows", "linux"].includes(os)) || new Set(entry.platforms).size !== entry.platforms.length)) fail(`${label}: invalid platforms`);
   if (entry.icon !== undefined) {
