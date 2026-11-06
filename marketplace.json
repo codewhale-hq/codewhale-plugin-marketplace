@@ -41,8 +41,8 @@
     },
     {
       "name": "computer-use",
-      "source": "https://github.com/codewhale-hq/codewhale-cu-plugin/releases/download/v0.16.0/computer-use.tar.gz",
-      "version": "0.16.0",
+      "source": "https://github.com/codewhale-hq/codewhale-cu-plugin/releases/download/v0.16.1/computer-use.tar.gz",
+      "version": "0.16.1",
       "description": "Control apps with Codewhale. macOS beta; unsigned Windows preview and experimental Linux/Docker support.",
       "homepage": "https://codewhale.net/computer-use",
       "display_name": "Computer Use",
@@ -51,7 +51,7 @@
       "platforms": [
         "macos"
       ],
-      "sha256": "11a4f5c97c32717fa5648d10c080aa0db48a4798ccdf0d17112d1ae5b9133ae4"
+      "sha256": "f649c65ec00b305920c1a1ad64c02b2d298d2457e0344b7cba55583568d132a7"
     },
     {
       "name": "design-review",

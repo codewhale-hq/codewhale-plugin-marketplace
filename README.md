@@ -67,13 +67,14 @@ for a later build. A clean clone can use the catalog's `path:` sources directly.
 
 Computer Use is released by its [canonical repository](https://github.com/codewhale-hq/codewhale-cu-plugin).
 Its catalog entry pins `computer-use.tar.gz` to the published
-[0.16.0 release](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/tag/v0.16.0)
+[0.16.1 release](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/tag/v0.16.1)
 and the publisher's SHA-256. The ordinary plugin Update action checks those same
 bytes until a reviewed catalog update changes the pin. Review changed capabilities
 before enabling the updated bundle. This plugin launches `node mcp/server.mjs`
 from its bundle directory and requires Node 20 or newer on the host's PATH.
-The native permission helper is a separate app; the matching 0.16.0 helper is
-available from the [setup page](https://codewhale.net/computer-use).
+The native permission helper is a separate app; the Codewhale desktop installs
+the matching 0.16.1 helper, and it is also available from the
+[setup page](https://codewhale.net/computer-use).
 Catalog metadata does not establish that a release asset has been published.
 This repository does not replace account connection management.
 
