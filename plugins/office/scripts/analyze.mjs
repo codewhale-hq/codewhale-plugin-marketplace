@@ -42,12 +42,14 @@ export function profile(text) {
   return { rows: rows.length, columns, duplicateRows: rows.length - keys.size, raggedRows: ragged };
 }
 
+const mdCell = (v) => String(v).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+
 export function profileMarkdown(p, name = "data") {
   const lines = [`# Profile: ${name}`, "", `${p.rows} rows, ${p.columns.length} columns. Duplicate rows: ${p.duplicateRows}. Rows with a different field count than the header: ${p.raggedRows}.`, "", "| Column | Type | Missing | Distinct | Summary |", "| --- | --- | --- | --- | --- |"];
   for (const c of p.columns) {
     const summary = c.type === "number" ? `min ${c.min}, median ${c.median}, mean ${c.mean}, max ${c.max}, sd ${c.std}${c.outliers ? `, ${c.outliers} outlier(s) by IQR` : ""}${c.nonNumeric ? `, ${c.nonNumeric} non-numeric` : ""}`
       : c.type === "date" ? `${c.min} → ${c.max}` : (c.top ?? []).map((t) => `${t.value} (${t.n})`).join(", ");
-    lines.push(`| ${c.name.replace(/\|/g, "\\|")} | ${c.type}${c.unique ? ", unique" : ""} | ${c.missing} | ${c.distinct} | ${summary.replace(/\|/g, "\\|")} |`);
+    lines.push(`| ${mdCell(c.name)} | ${c.type}${c.unique ? ", unique" : ""} | ${c.missing} | ${c.distinct} | ${mdCell(summary)} |`);
   }
   return lines.join("\n") + "\n";
 }
