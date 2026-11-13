@@ -118,3 +118,35 @@ test('skill provenance check catches added, removed and altered resources withou
   fs.unlinkSync(file);assert.equal(run().status,1);fs.writeFileSync(file,original);
   fs.writeFileSync(path.join(root,'skills/gmail/unreviewed.sh'),'echo example');assert.equal(run().status,1);
 });
+test('https:// catalog entries require sha256 and reject floating /releases/latest URLs',t=>{
+  const f=contractFixture(t),validSha='a'.repeat(64);
+  const base=JSON.parse(fs.readFileSync(path.join(f.root,'marketplace.json'),'utf8'));
+  const writeCatalog=(entry)=>fs.writeFileSync(path.join(f.root,'marketplace.json'),JSON.stringify({name:'fixture',plugins:[...base.plugins,entry]}));
+  writeCatalog({name:'remote',version:'1.0.0',description:'Remote',source:'https://example.com/releases/download/v1.0.0/pkg.tar.gz',sha256:validSha});
+  const ok=f.run();assert.equal(ok.status,0,ok.stderr);
+  writeCatalog({name:'remote',version:'1.0.0',description:'Remote',source:'https://example.com/releases/download/v1.0.0/pkg.tar.gz'});
+  const missingSha=f.run();assert.equal(missingSha.status,1);assert.match(missingSha.stderr,/requires a sha256/);
+  for(const url of [
+    'https://example.com/releases/latest/download/pkg.tar.gz',
+    'https://example.com/releases/Latest/download/pkg.tar.gz',
+    'https://example.com/releases/%6Catest/download/pkg.tar.gz',
+    'https://example.com/releases/%6Catest/download/pkg.tar.gz?%',
+    'https://example.com/releases/%256Catest/download/pkg.tar.gz',
+    'https://example.com/releases/./latest/download/pkg.tar.gz',
+    'https://example.com/releases/v0.16.1/../latest/download/pkg.tar.gz',
+    'https://example.com/releases/%2e/latest/download/pkg.tar.gz',
+    'https://example.com/releases//latest/download/pkg.tar.gz',
+    'https://example.com/releases\\latest/download/pkg.tar.gz',
+  ]){
+    writeCatalog({name:'remote',version:'1.0.0',description:'Remote',source:url,sha256:validSha});
+    const r=f.run();assert.equal(r.status,1,url);assert.match(r.stderr,/releases\/latest/);
+  }
+  for(const url of [
+    'https://example.com/releases/la\ttest/download/pkg.tar.gz',
+    'https://example.com/releases/\nlatest/download/pkg.tar.gz',
+    'https://example.com/releases/%zz/download/pkg.tar.gz',
+  ]){
+    writeCatalog({name:'remote',version:'1.0.0',description:'Remote',source:url,sha256:validSha});
+    const r=f.run();assert.equal(r.status,1,url);
+  }
+});

@@ -1,0 +1,107 @@
+name: Bump first-party pin
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: bump-computer-use
+  cancel-in-progress: false
+jobs:
+  bump-computer-use:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve latest release
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_JSON="$(mktemp)"
+          gh api repos/codewhale-hq/codewhale-cu-plugin/releases/latest > "$RELEASE_JSON"
+          TAG="$(jq -r '.tag_name // empty' "$RELEASE_JSON")"
+          ASSETS_JSON="$(jq -c '[.assets[].name]' "$RELEASE_JSON")"
+          TARBALL_DIGEST="$(jq -r '.assets[] | select(.name == "computer-use.tar.gz") | .digest // empty' "$RELEASE_JSON")"
+          rm -f "$RELEASE_JSON"
+          if ! printf '%s' "$TAG" | tr '\n' 'X' | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid release tag: $TAG" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$TARBALL_DIGEST" | tr '\n' 'X' | grep -Eq '^sha256:[a-f0-9]{64}$'; then
+            echo "Missing or invalid release asset digest: $TARBALL_DIGEST" >&2
+            exit 1
+          fi
+          {
+            echo "tag=$TAG"
+            echo "assets_json=$ASSETS_JSON"
+            echo "tarball_digest=$TARBALL_DIGEST"
+          } >> "$GITHUB_OUTPUT"
+          node scripts/bump-computer-use.mjs --check-current --tag "$TAG"
+      - name: Download release artifacts and update marketplace.json
+        id: bump
+        if: steps.resolve.outputs.current != 'true'
+        env:
+          TAG: ${{ steps.resolve.outputs.tag }}
+          ASSETS_JSON: ${{ steps.resolve.outputs.assets_json }}
+          TARBALL_DIGEST: ${{ steps.resolve.outputs.tarball_digest }}
+        run: |
+          TMP_DIR="$(mktemp -d)"
+          BASE_URL="https://github.com/codewhale-hq/codewhale-cu-plugin/releases/download/${TAG}"
+          curl --proto '=https' --proto-redir '=https' --max-time 120 --max-filesize 104857600 -fsSL "${BASE_URL}/computer-use.tar.gz" -o "${TMP_DIR}/computer-use.tar.gz"
+          curl --proto '=https' --proto-redir '=https' --max-time 120 --max-filesize 1048576 -fsSL "${BASE_URL}/SHA256SUMS.txt" -o "${TMP_DIR}/SHA256SUMS.txt"
+          node scripts/bump-computer-use.mjs \
+            --tag "$TAG" \
+            --assets "$ASSETS_JSON" \
+            --tarball "${TMP_DIR}/computer-use.tar.gz" \
+            --sums "${TMP_DIR}/SHA256SUMS.txt" \
+            --digest "$TARBALL_DIGEST"
+          rm -rf "$TMP_DIR"
+      - name: Install dependencies and verify catalog
+        if: steps.resolve.outputs.current != 'true'
+        run: |
+          npm ci --ignore-scripts
+          npm run check
+          node --test tests/catalog-wiring.test.mjs tests/connections.test.mjs tests/keyword-stoplist.test.mjs
+          node --test --test-skip-pattern='^vendored integrations match every pinned Core source hash$' tests/repository.test.mjs
+      - name: Open or update pull request
+        if: steps.resolve.outputs.current != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OLD_VERSION: ${{ steps.bump.outputs.old_version }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          SHA256: ${{ steps.bump.outputs.sha256 }}
+          SOURCE_URL: ${{ steps.bump.outputs.source_url }}
+          CURRENT_PLATFORMS: ${{ steps.bump.outputs.current_platforms }}
+          PLATFORM_ASSETS: ${{ steps.bump.outputs.platform_assets }}
+        run: |
+          gh auth setup-git --hostname github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B bot/bump-computer-use
+          git add marketplace.json
+          git commit -m "chore: bump Computer Use pin to ${NEW_VERSION}"
+          git push --force origin bot/bump-computer-use
+          PR_TITLE="Bump Computer Use pin to ${NEW_VERSION}"
+          PR_BODY="$(printf 'Proposes bumping the computer-use pin in marketplace.json.\n\n- Old version: %s\n- New version: %s\n- Source URL: %s\n- SHA256: %s\n- Catalog platforms (unchanged): %s\n- Release platform assets: %s\n\nDownload integrity verified: the downloaded tarball SHA-256 matched SHA256SUMS.txt and the GitHub release asset digest (proves transit integrity, not independent authenticity).\n\nNotes:\n- README.md also references the pinned version and may need a manual update.\n- Because GITHUB_TOKEN does not trigger pull_request workflows, a maintainer must close and reopen this PR (or open it from the compare link) to run check.yml.\n- Merging this pull request is a maintainer publication step.' "$OLD_VERSION" "$NEW_VERSION" "$SOURCE_URL" "$SHA256" "$CURRENT_PLATFORMS" "$PLATFORM_ASSETS")"
+          EXISTING_PR="$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&base=main&head=${GITHUB_REPOSITORY%%/*}:bot/bump-computer-use" --jq '.[0].number // empty')"
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
+          else
+            if ! gh pr create --base main --head bot/bump-computer-use --title "$PR_TITLE" --body "$PR_BODY"; then
+              COMPARE_URL="https://github.com/${GITHUB_REPOSITORY}/compare/main...bot/bump-computer-use?expand=1"
+              echo "::warning::Could not create PR automatically; open manually: ${COMPARE_URL}"
+              {
+                printf '## Bump Computer Use pin to %s\n\n' "$NEW_VERSION"
+                printf 'Open PR manually: %s\n\n' "$COMPARE_URL"
+                printf '%s\n' "$PR_BODY"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi

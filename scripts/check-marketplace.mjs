@@ -294,6 +294,50 @@ if (catalog) {
     } else if (/^github:[^\s/]+\/[^\s/]+$/.test(source)) {
       note(`${name}: remote source '${source}' — not validated offline`);
     } else if (/^https:\/\//.test(source)) {
+      if (entry.sha256 === undefined) fail(`${name}: https:// source requires a sha256 of 64 lowercase hexadecimal characters`);
+      if (/[\s\x00-\x1f\x7f]/.test(source)) fail(`${name}: https:// source must not contain whitespace or control characters`);
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(source);
+      } catch {
+        fail(`${name}: source '${source}' is not a valid https:// URL`);
+      }
+      if (parsedUrl && (parsedUrl.protocol !== "https:" || !parsedUrl.hostname || parsedUrl.username || parsedUrl.password)) {
+        fail(`${name}: source '${source}' must be a valid credential-free https:// URL`);
+      }
+      if (parsedUrl) {
+        const slashSource = source.replace(/\\/g, "/");
+        const rawSegments = parsedUrl.pathname.replace(/\\/g, "/").split("/");
+        let decodeFailed = false;
+        const decodedSegments = rawSegments.map((seg) => {
+          let cur = seg;
+          for (let pass = 0; pass < 3; pass++) {
+            try {
+              const next = decodeURIComponent(cur);
+              if (next === cur) break;
+              cur = next;
+            } catch {
+              decodeFailed = true;
+              break;
+            }
+          }
+          return cur;
+        });
+        if (decodeFailed) {
+          fail(`${name}: https:// source '${source}' has malformed percent-encoding in path`);
+        }
+        const decodedPath = decodedSegments.join("/");
+        const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, "/")).replace(/\/+/g, "/");
+        const latestRe = /\/releases\/latest(?:\/|$)/i;
+        if (
+          latestRe.test(source) ||
+          latestRe.test(slashSource) ||
+          latestRe.test(decodedPath) ||
+          latestRe.test(normalizedPath)
+        ) {
+          fail(`${name}: https:// source must not use floating /releases/latest URL`);
+        }
+      }
       note(`${name}: remote source '${source}' — not validated offline`);
     } else {
       fail(`${name}: source '${source}' is not a spec Codewhale accepts (path:, github:owner/repo, https:// tarball)`);
