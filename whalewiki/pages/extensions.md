@@ -8,10 +8,11 @@ local or remote sources, stable IDs, human-readable names and versions. An entry
 capabilities or establish a service login.
 
 Computer Use (`computer-use`) is an independently released plugin. Its catalog
-entry points to the canonical repository's stable
-[plugin archive](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/latest/download/computer-use.tar.gz).
-Codewhale's ordinary installer downloads and reviews that bundle; its Update
-action checks the same source. This repository carries no copy of the runtime
+entry pins the canonical repository's
+[0.16.3 plugin archive](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/download/v0.16.3/computer-use.tar.gz)
+to the publisher's SHA-256. Codewhale's ordinary installer downloads and reviews
+that bundle; its Update action checks the same bytes until a reviewed catalog
+update changes the pin. This repository carries no copy of the runtime
 and does not build or test it. The offline catalog check validates the source
 syntax, not the remote bytes or publication status.
 

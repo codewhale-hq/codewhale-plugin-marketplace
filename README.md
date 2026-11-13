@@ -67,13 +67,13 @@ for a later build. A clean clone can use the catalog's `path:` sources directly.
 
 Computer Use is released by its [canonical repository](https://github.com/codewhale-hq/codewhale-cu-plugin).
 Its catalog entry pins `computer-use.tar.gz` to the published
-[0.16.1 release](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/tag/v0.16.1)
+[0.16.3 release](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/tag/v0.16.3)
 and the publisher's SHA-256. The ordinary plugin Update action checks those same
 bytes until a reviewed catalog update changes the pin. Review changed capabilities
 before enabling the updated bundle. This plugin launches `node mcp/server.mjs`
 from its bundle directory and requires Node 20 or newer on the host's PATH.
 The native permission helper is a separate app; the Codewhale desktop installs
-the matching 0.16.1 helper, and it is also available from the
+the matching 0.16.3 helper, and it is also available from the
 [setup page](https://codewhale.net/computer-use).
 Catalog metadata does not establish that a release asset has been published.
 This repository does not replace account connection management.
@@ -117,8 +117,8 @@ Core embeds this catalog for offline browsing and installs each selected bundle
 through its existing reviewed installer. After a catalog or bundle update,
 commit the marketplace change and run `python3 scripts/sync-marketplace.py`
 from the sibling Core checkout. Local entries use pinned marketplace archives;
-remote entries keep their declared source. Later Computer Use releases at its
-stable release address need no catalog change or Engine rebuild. Core's `Marketplace connection` workflow checks
+remote entries keep their declared source. A new Computer Use release needs a reviewed catalog pin
+update and an Engine snapshot. Core's `Marketplace connection` workflow checks
 the pinned catalog on changes and checks current upstream mirrors weekly.
 See Core's [marketplace maintenance guide](https://github.com/codewhale-hq/Codewhale/blob/main/docs/PLUGIN_MARKETPLACE.md)
 for source ownership, update commands, and the publication order. Catalog
