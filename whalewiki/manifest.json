@@ -4,13 +4,13 @@
   "pages": {
     "pages/extensions.md": {
       "title": "Choose and ship an extension",
-      "page_sha256": "27f9224d311a4b58a632cf7c1c9a1687c6f4fb2b77be89564a24a874be27ce35",
+      "page_sha256": "5834d16e9bdb30b2ed0c6e0d2f6c255313896d0f40e037022c37d36b64a248f5",
       "sources": [
         {
           "path": "marketplace.json",
           "root": "repo",
-          "sha256": "c70c2130c2cd3130099a42282dcdf431a91e85d44dc273499e93da7341b67028",
-          "bytes": 12956
+          "sha256": "d1336235f18b79f9b9903541163710794a5eb0c3cd2e8e6fbf74809a4a3f158b",
+          "bytes": 13041
         },
         {
           "path": "CONTRIBUTING.md",
@@ -27,8 +27,8 @@
         {
           "path": "scripts/check-marketplace.mjs",
           "root": "repo",
-          "sha256": "06dc692f542e794b4d8d6436649fcbb4b521f02af9aa1c51278a8fbe095d7c04",
-          "bytes": 17008
+          "sha256": "8c651942de96a724d854959acbe972c2bdd77a89ab655d6360ec2da55be4f49a",
+          "bytes": 19182
         },
         {
           "path": "package.json",
@@ -113,9 +113,15 @@
           "root": "repo",
           "sha256": "6df5fcaccd59767d87e3e595746367692a707a24d119ab4961a80cadd6b1f087",
           "bytes": 6217
+        },
+        {
+          "path": ".github/workflows/bump-first-party.yml",
+          "root": "repo",
+          "sha256": "2c5e0ff83442eb8aac11ef9f21bbbc8bae483e6b75f67ea4cd8c393a689fce2d",
+          "bytes": 6179
         }
       ],
-      "sealed_at": "2026-10-29T08:37:17.567Z"
+      "sealed_at": "2026-11-15T05:19:33.408Z"
     },
     "pages/wiki-evidence.md": {
       "title": "How WhaleWiki earns a fresh badge",
@@ -252,5 +258,5 @@
       "sealed_at": "2026-10-29T08:37:17.637Z"
     }
   },
-  "updated_at": "2026-10-29T08:37:17.638Z"
+  "updated_at": "2026-11-15T05:19:33.409Z"
 }

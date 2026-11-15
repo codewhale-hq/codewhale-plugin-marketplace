@@ -64,11 +64,14 @@ jobs:
             --sums "${TMP_DIR}/SHA256SUMS.txt" \
             --digest "$TARBALL_DIGEST"
           rm -rf "$TMP_DIR"
+          SOURCES="$(jq -r '.pages["pages/extensions.md"].sources | map(.path) | join(",")' whalewiki/manifest.json)"
+          node plugins/whalewiki/scripts/whalewiki.mjs manifest set pages/extensions.md --sources "$SOURCES"
       - name: Install dependencies and verify catalog
         if: steps.resolve.outputs.current != 'true'
         run: |
           npm ci --ignore-scripts
           npm run check
+          npm run check:wiki
           node --test tests/catalog-wiring.test.mjs tests/connections.test.mjs tests/keyword-stoplist.test.mjs
           node --test --test-skip-pattern='^vendored integrations match every pinned Core source hash$' tests/repository.test.mjs
       - name: Open or update pull request
@@ -86,7 +89,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B bot/bump-computer-use
-          git add marketplace.json
+          git add marketplace.json whalewiki/manifest.json
           git commit -m "chore: bump Computer Use pin to ${NEW_VERSION}"
           git push --force origin bot/bump-computer-use
           PR_TITLE="Bump Computer Use pin to ${NEW_VERSION}"

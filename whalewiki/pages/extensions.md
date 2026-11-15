@@ -8,12 +8,15 @@ local or remote sources, stable IDs, human-readable names and versions. An entry
 capabilities or establish a service login.
 
 Computer Use (`computer-use`) is an independently released plugin. Its catalog
-entry points to the canonical repository's stable
-[plugin archive](https://github.com/codewhale-hq/codewhale-cu-plugin/releases/latest/download/computer-use.tar.gz).
+entry in `marketplace.json` pins a versioned upstream release
+[plugin archive](https://github.com/codewhale-hq/codewhale-cu-plugin/releases)
+with a verified `sha256` digest, and `.github/workflows/bump-first-party.yml`
+can propose pin updates from newer upstream releases via pull request.
 Codewhale's ordinary installer downloads and reviews that bundle; its Update
 action checks the same source. This repository carries no copy of the runtime
 and does not build or test it. The offline catalog check validates the source
-syntax, not the remote bytes or publication status.
+syntax and pinned `https://` release URL format, not remote bytes or publication
+status.
 
 The separate native Mac helper owns OS permissions and the visible computer
 controls. Use the [setup page](https://codewhale.net/computer-use),
@@ -164,6 +167,7 @@ handoff and inspect the current validation receipt before publication.
 - `CONTRIBUTING.md`: admission and ownership rules.
 - `scripts/package-plugin.mjs`, `packagePlugin`: source inventory and package guards.
 - `scripts/check-marketplace.mjs`: catalog, manifest, keyword and MCP contract checks.
+- `.github/workflows/bump-first-party.yml`: manual pull-request workflow for Computer Use catalog updates.
 - `package.json`: executable repository gates.
 - `scripts/test-plugins.mjs`, `scripts/sync-skill-plugins.mjs`, `tests/catalog-wiring.test.mjs`: plugin test discovery, domain-skill refresh and catalog wiring checks.
 - `scripts/skills.mjs`, `skills/upstream.json`, `skills/README.md`: active catalog,
