@@ -8,7 +8,7 @@
 # Ctrl-C stops both. Override defaults with the env vars below:
 #   CODEWHALE_RUNTIME_PORT   runtime port            (default 7878)
 #   CODEWHALE_RUNTIME_TOKEN  reuse an existing token (default: generated)
-#   WEIXIN_ALLOW_UNLISTED    first-pairing mode      (default true)
+#   WEIXIN_ALLOW_UNLISTED    allow any WeChat user   (default false: only the scanner)
 #   WEIXIN_STATE_DIR         state directory         (default: ./.state)
 
 set -euo pipefail
@@ -26,7 +26,7 @@ fi
 export CODEWHALE_RUNTIME_TOKEN
 
 export CODEWHALE_RUNTIME_URL="$runtime_url"
-export WEIXIN_ALLOW_UNLISTED="${WEIXIN_ALLOW_UNLISTED:-true}"
+export WEIXIN_ALLOW_UNLISTED="${WEIXIN_ALLOW_UNLISTED:-false}"
 export WEIXIN_STATE_DIR="${WEIXIN_STATE_DIR:-$bridge_dir/.state}"
 
 runtime_pid=""
@@ -67,7 +67,7 @@ if ! curl -fsS "$runtime_url/health" >/dev/null 2>&1; then
 fi
 
 echo "Runtime is healthy. Starting Weixin bridge..."
-echo "Allow-unlisted (first pairing): $WEIXIN_ALLOW_UNLISTED"
+echo "Allow any WeChat user: $WEIXIN_ALLOW_UNLISTED"
 echo "State dir: $WEIXIN_STATE_DIR"
 echo ""
 

@@ -154,16 +154,16 @@ test("action tokens remain distinct when clock and legacy randomness repeat", as
 });
 
 test("readJsonSafe tolerates empty and non-JSON bodies", async () => {
-  assert.deepEqual(await readJsonSafe({ text: async () => "" }), {});
-  assert.deepEqual(await readJsonSafe({ text: async () => '{"ok":true}' }), { ok: true });
-  assert.equal(await readJsonSafe({ text: async () => "plain text" }), "plain text");
+  assert.deepEqual(await readJsonSafe(new Response("")), {});
+  assert.deepEqual(await readJsonSafe(new Response('{"ok":true}')), { ok: true });
+  assert.equal(await readJsonSafe(new Response("plain text")), "plain text");
 });
 
 test("readSse reassembles events split across chunks and strips CR", async () => {
   const response = {
     body: (async function* () {
-      yield Buffer.from('event: item.delta\ndata: {"seq":1}\n\nevent:');
-      yield Buffer.from(' turn.completed\r\ndata: {"seq":2}\n\n');
+      yield Buffer.from('event: item.delta\r\ndata: {"seq":1}\r\n\r');
+      yield Buffer.from('\nevent: turn.completed\r\ndata: {"seq":2}\n\n');
     })()
   };
   const events = [];
@@ -180,13 +180,9 @@ test("createRuntimeClient sends bearer auth and surfaces runtime errors", async 
   globalThis.fetch = async (url, options) => {
     calls.push({ url: String(url), options });
     if (String(url).endsWith("/fail")) {
-      return {
-        ok: false,
-        status: 503,
-        text: async () => JSON.stringify({ error: { message: "down" } })
-      };
+      return new Response(JSON.stringify({ error: { message: "down" } }), { status: 503 });
     }
-    return { ok: true, status: 200, text: async () => JSON.stringify({ ok: true }) };
+    return new Response(JSON.stringify({ ok: true }));
   };
   try {
     const { runtimeJson, authHeaders } = createRuntimeClient({
@@ -333,9 +329,34 @@ test("ThreadStore claims survive a restart: finished messages skip, an in-flight
     const restarted = await ThreadStore.open(statePath, { messageLimit: 10 });
     assert.equal(await restarted.claimMessage("u:1"), "done");
     assert.equal(await restarted.claimMessage("u:2"), "interrupted");
+    assert.equal(await restarted.claimMessage("u:2"), "interrupted", "keep the claim until the report succeeds");
+    await restarted.completeMessage("u:2");
     assert.equal(await restarted.claimMessage("u:2"), "done", "reported once, then an ordinary duplicate");
     assert.equal(await restarted.claimMessage("u:3"), "new");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+// ─── splitMessage byte cap ───────────────────────────────────────
+
+test("splitMessage splits CJK text by bytes when a byte cap is set", () => {
+  const cjk = "横".repeat(4000); // 4000 chars = 12000 UTF-8 bytes
+  const chunks = splitMessage(cjk, 3500, 3800);
+  assert.ok(chunks.length >= 3, `expected >=3 chunks, got ${chunks.length}`);
+  for (const c of chunks) assert.ok(Buffer.byteLength(c, "utf8") <= 3800);
+  assert.equal(chunks.join(""), cjk);
+});
+
+test("splitMessage keeps short messages single under a byte cap", () => {
+  assert.deepEqual(splitMessage("hello", 3500, 3800), ["hello"]);
+  const mixed = "字".repeat(100) + "x".repeat(100); // 400 bytes
+  assert.equal(splitMessage(mixed, 3500, 3800).length, 1);
+});
+
+test("splitMessage byte cap is opt-in", () => {
+  const cjk = "横".repeat(4000);
+  const chunks = splitMessage(cjk, 3500, 0);
+  assert.equal(chunks.length, 2); // char limit only
+  assert.ok(Buffer.byteLength(chunks[0], "utf8") > 3800);
 });

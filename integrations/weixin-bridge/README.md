@@ -24,7 +24,6 @@ codewhale serve --http --host 127.0.0.1 --port 7878 --auth-token "$CODEWHALE_RUN
 ```bash
 cd integrations/weixin-bridge
 export CODEWHALE_RUNTIME_TOKEN="<与上面相同的 token>"
-export WEIXIN_ALLOW_UNLISTED=true
 npm start
 ```
 
@@ -62,9 +61,13 @@ npm run bridge
 
 - `codewhale serve --http` 绑定于 `127.0.0.1`。
 - `/v1/*` runtime 调用使用 `CODEWHALE_RUNTIME_TOKEN`。
-- 微信用户必须加入白名单，除非首次配对时设置 `WEIXIN_ALLOW_UNLISTED=true`。
+- 默认只有扫码登录的那个微信（`ilink_user_id`）可以使用；其他聊天会收到一次带 `user_id` 的拒绝。
+  设置 `WEIXIN_CHAT_ALLOWLIST` 后改用显式白名单。
 - 仅支持私聊；暂不支持群聊。
-- 工具审批通过文本命令：`/allow <approval_id>` 或 `/deny <approval_id>`。
+- 工具审批：回复审批消息里的批准码，`1 k7m2fz` 允许、`2 k7m2fz` 拒绝。批准码一次有效、30 分钟过期，
+  过期后 `/status` 会重新发出；批准本身在 Engine 中保持等待，不会因过期被拒绝。
+  `/allow <approval_id>`、`/deny <approval_id>` 仍然可用。
+- 每个状态目录带一个 `bridge.lock`；同一目录的第二个 bridge 进程会拒绝启动。
 - bridge 主动向微信服务器发起长轮询请求，无需公网端口。
 
 ## 产品边界与验证
@@ -109,7 +112,11 @@ Engine turn 与微信记录，避免重复执行或重复发送。同一账户�
 
 `/threads` 只显示当前账户与当前聊天拥有的最近对话，`/resume` 只接受该
 账户和聊天已经绑定的对话。创建新对话会保留最多 200 条绑定记录；超出记录
-范围的旧对话或其他聊天的对话不能通过任意线程 ID 接管。
+范围的旧对话或其他聊天的对话不能通过任意线程 ID 接管。归属记录现在与聊天状态
+分开保存在 `thread-map.json` 的 `threadOwners` 中。
+升级时，只有由本 bridge 创建的线程才会保留给聊天：启动时 bridge 会向 runtime
+确认一次当前绑定的线程，由桌面端、TUI 或其他客户端创建的线程会被移除，
+该聊天需要发送 `/new`。
 
 注意：bridge **不读取 `.env` 文件**，手动运行时环境变量必须通过 `export` 传入，
 或使用 `node --env-file=.env src/index.mjs`。
@@ -126,25 +133,42 @@ node src/index.mjs
 
 ## 命令
 
-- `/status`
-- `/threads`
-- `/new`
+- `/status`（`/状态`）：状态，并为等待中的审批重新发出批准码
+- `/threads`（`/对话`）
+- `/new`（`/新对话`）
 - `/resume <thread_id>`
 - `/model <name|default>`
-- `/interrupt`
+- `/stop`、`/interrupt`（`/停止`）
 - `/compact`
-- `/allow <approval_id> [remember]`
-- `/deny <approval_id>`
+- `1 <批准码>` / `2 <批准码>`：允许或拒绝
+- `/allow <approval_id> [remember]`、`/deny <approval_id>`
+- `继续`（或 `more`）：查看剩余的回复
 
+Engine 向你提问时，下一条消息就是回答：回复选项编号或文字；多个问题时每行回答一个。
 其他所有内容均作为 Codewhale 提示发送。
+
+## 微信的限制
+
+以下来自腾讯官方客户端和公开 issue，不是完整的服务器合同：
+
+- Bot 只能回复，且只能在你最后一条消息后的 24 小时内回复；bridge 按 23.5 小时计算。
+- 每条你发出的消息之后，bridge 最多回复 8 条（`WEIXIN_MAX_SENDS_PER_MESSAGE`）。更长的回答
+  先发 7 条加一条提示，回复「继续」查看剩余部分。窗口外完成的回答会等你下一条消息再发出，
+  并提示你刚才的消息还没有运行。
+- 回复之间至少间隔 1 秒；遇到 `rate limited` 时按 1 到 15 分钟退避后重试，不会连续重发。
+- `getupdates` 或发送返回 `errcode -14`（会话过期）时，与腾讯客户端一样暂停所有 iLink
+  调用 1 小时再重试；仍然过期时，删除 `account.json` 并重新扫码。
+- `ret=0` 但没有 `message_id` 的发送记为 `unconfirmed`：腾讯可能在静默过滤这个账号的消息，
+  `/status` 会提示。请到手机上确认。
+- 每个微信用户只能绑定一个 ClawBot；在别处重新绑定会断开这里。不要反复扫码测试，
+  有用户反馈因此被限制。
+- Engine 生成回答时显示“正在输入”。
 
 ## 首次配对
 
-1. 设置 `WEIXIN_ALLOW_UNLISTED=true` 启动 bridge。
-2. 扫码登录后，在微信中发送 `/status`。
-3. Bridge 返回 runtime 状态和当前发送者的 `user_id`。
-4. 将 `user_id` 加入 `WEIXIN_CHAT_ALLOWLIST`。
-5. 将 `WEIXIN_ALLOW_UNLISTED` 改回 `false` 并重启 bridge。
+扫码登录后，bridge 只接受扫码的那个微信。若需允许其他用户，在微信中发送 `/status`
+查看各自的 `user_id`，写入 `WEIXIN_CHAT_ALLOWLIST` 并重启。`WEIXIN_ALLOW_UNLISTED=true`
+会允许任何能联系到这个 bot 的人，仅用于排查。
 
 ## 环境变量
 
@@ -155,11 +179,12 @@ node src/index.mjs
 | `CODEWHALE_WORKSPACE` | 否 | 工作区路径（默认 cwd） |
 | `CODEWHALE_MODEL` | 否 | 模型名称（默认 `auto`） |
 | `CODEWHALE_MODE` | 否 | 运行模式（默认 `agent`） |
-| `WEIXIN_CHAT_ALLOWLIST` | 否 | 逗号分隔的允许用户 ID |
-| `WEIXIN_ALLOW_UNLISTED` | 否 | 首次配对模式（默认 `false`） |
+| `WEIXIN_CHAT_ALLOWLIST` | 否 | 逗号分隔的允许用户 ID（默认只允许扫码的微信） |
+| `WEIXIN_ALLOW_UNLISTED` | 否 | 允许任何用户（默认 `false`，仅用于排查） |
 | `WEIXIN_STATE_DIR` | 否 | 状态持久化目录（默认 `/var/lib/codewhale-weixin-bot-bridge`） |
 | `WEIXIN_THREAD_MAP_PATH` | 否 | 线程映射文件路径（默认 `<WEIXIN_STATE_DIR>/thread-map.json`） |
 | `WEIXIN_MAX_REPLY_CHARS` | 否 | 单条回复最大字符数（默认 `3500`） |
+| `WEIXIN_MAX_SENDS_PER_MESSAGE` | 否 | 每条用户消息后最多回复几条（默认 `8`，最小 `2`） |
 | `CODEWHALE_TURN_TIMEOUT_MS` | 否 | 单次事件观察连接的时限（默认 `900000`）；断开后恢复观察，不中止 Engine turn |
 | `WEIXIN_LONGPOLL_TIMEOUT_MS` | 否 | 长轮询超时（默认 `35000`） |
 

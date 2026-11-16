@@ -9,7 +9,7 @@
         {
           "path": "marketplace.json",
           "root": "repo",
-          "sha256": "d1336235f18b79f9b9903541163710794a5eb0c3cd2e8e6fbf74809a4a3f158b",
+          "sha256": "d9fdb6e5351b115fbb00a4ff4089dba0b5da9d02c713427c48babe7acb24407a",
           "bytes": 13041
         },
         {
@@ -121,7 +121,7 @@
           "bytes": 6179
         }
       ],
-      "sealed_at": "2026-11-15T05:19:33.408Z"
+      "sealed_at": "2026-11-16T02:55:16.299Z"
     },
     "pages/wiki-evidence.md": {
       "title": "How WhaleWiki earns a fresh badge",
@@ -156,7 +156,7 @@
     },
     "pages/integrations.md": {
       "title": "Connections and inbound requests",
-      "page_sha256": "aa1e6d491f904a810a13fb6e94f907912f22ed40cb10d248508791e16e5d1cef",
+      "page_sha256": "f3a86d5e4411c1c2af38ae6bbab2e77cffb5df07c67c0cde6a0d0141c810e71d",
       "sources": [
         {
           "path": "connections/catalog.json",
@@ -179,8 +179,8 @@
         {
           "path": "integrations/upstream.json",
           "root": "repo",
-          "sha256": "39ae585ba77f2550191b5611c6bc02fa0dbaf845aca90c865661146ee01272ca",
-          "bytes": 5356
+          "sha256": "4158f79f2d18d066db480bdaf4dc8b063ae0906a3512d45d1730a6630ae47e32",
+          "bytes": 6012
         },
         {
           "path": "integrations/README.md",
@@ -215,48 +215,48 @@
         {
           "path": "integrations/telegram-bridge/src/index.mjs",
           "root": "repo",
-          "sha256": "3da6441e6200e13ca900b656fd18981e4515a211100952c9963b3ed3c6f273cc",
-          "bytes": 34656
+          "sha256": "0acefbbfff5052e594286c747846e5a7614897ebd7875a1538c4ab1c62de7975",
+          "bytes": 46131
         },
         {
           "path": "integrations/feishu-bridge/src/index.mjs",
           "root": "repo",
-          "sha256": "05546cf94ee401d3f055b1d907a6d03544e308093bd41ea1b1b51b2eec1a22fa",
-          "bytes": 20652
+          "sha256": "f92bf8be6f61b152201841cf893f403e50084cd1b3a88e1122a16f5d0eea595d",
+          "bytes": 22092
         },
         {
           "path": "integrations/bridge-core/src/lib.mjs",
           "root": "repo",
-          "sha256": "7b3941dc9a0244b97d0fc4e33ad5877afd48c92ffcab627e9367e4e452f715df",
-          "bytes": 23972
+          "sha256": "d853f973e4698645c8cf5e28ab4b054fa92a81c5f2470983f5e2e83496a05c51",
+          "bytes": 39987
         },
         {
           "path": "integrations/wecom-bridge/src/index.mjs",
           "root": "repo",
-          "sha256": "9dd1576e6273383cf48b1a65aad0cfa030823bc8c2fc335102225ee25b0023ed",
-          "bytes": 18425
+          "sha256": "e9ec82280ab36ab655b1701b86bcb5e9276e4a15dade1623b0af5cbec74a3bad",
+          "bytes": 22173
         },
         {
           "path": "integrations/weixin-bridge/README.md",
           "root": "repo",
-          "sha256": "4453d45ae938bc6a3302a82b8e54e22dfb7c53397229cd30f78cfd029a157b30",
-          "bytes": 8098
+          "sha256": "62bd3efe6e7590f7c398c58ca775cb478257683f3a335717b9cf89f9d0e3be9a",
+          "bytes": 10531
         },
         {
           "path": "integrations/weixin-bridge/src/index.mjs",
           "root": "repo",
-          "sha256": "8506c6c0ed24496628983f0cdf56997231137675d3d1f7c3b534254444d26e46",
-          "bytes": 43523
+          "sha256": "4ad41f060bbe644137216b0fb7528d62303abe0434ccb9311e68923477bd0cdd",
+          "bytes": 61476
         },
         {
           "path": "integrations/weixin-bridge/src/lib.mjs",
           "root": "repo",
-          "sha256": "e5b5674c02b7f69d5bc1e8e74a2eb9c427a8f05928e2ad1d107bab4dcdaab9bc",
-          "bytes": 12546
+          "sha256": "c4f771d19ae6ed247a35b76015524275cd06cb8acf426b6a552613c362dbe3fa",
+          "bytes": 14569
         }
       ],
-      "sealed_at": "2026-10-29T08:37:17.637Z"
+      "sealed_at": "2026-11-16T02:55:16.347Z"
     }
   },
-  "updated_at": "2026-11-15T05:19:33.409Z"
+  "updated_at": "2026-11-16T02:55:16.347Z"
 }

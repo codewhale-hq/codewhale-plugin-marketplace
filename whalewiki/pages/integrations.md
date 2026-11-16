@@ -62,23 +62,48 @@ its reply destination only after admitting the incoming sender.
 The current pinned bridges retain the accepted turn's initiating human for
 approval decisions. A newer group sender or an unbound legacy button cannot
 approve another person's turn. Restart recovery validates that identity before
-reattaching. Weixin also binds durable prompts, accepted operation IDs, saved
-replies and uncertain deliveries to the paired bot account; a replacement
-account cannot inherit them. Reply context tokens also belong to the paired
-account, including pending work that has not yet received a thread ID. New
-inbound tokens cannot overwrite another account's retained context; an unbound
-legacy token cannot authorize a reply. An explicit `/new` after account replacement
-durably retains the old private receipt for human review before binding a fresh
-conversation; it never resubmits the old prompt or uncertain reply. Retired
-receipts are bounded per chat by the configured action limit (200 by default)
-and 1 MiB. Reaching either limit stops replacement before creating a thread;
-the operator must back up and reconcile the private records rather than evict
-uncertain work. Same-account pending work still blocks replacement. `/threads`
-filters to that account and chat's recorded bindings before applying its result
-limit, and `/resume` checks ownership before reading a thread. The live poller
-uses the same tested batch handler: failed handling cannot advance its cursor.
-QR setup and reconnect behavior still require real service qualification.
-These guarantees come from the same Core owner.
+reattaching. Shared Runtime reads are also bounded (`bridge-core` caps SSE event
+frames at 2 MiB and JSON payloads at 8 MiB on success or 4 KiB on error). WeCom
+additionally accepts voice, image, video and file messages (downloaded into
+`WECOM_MEDIA_DIR` or `<workspace>/media`), steers active turns via `/steer`
+instead of dropping concurrent prompts, and rotates reply streams through
+`createStreamReply`.
+
+All four pinned bridges now isolate thread ownership per chat in `threadOwners`
+outside per-chat state (`ownerLimit` defaults to `actionLimit`, 200 per chat;
+Weixin scopes ownership to the paired bot account and chat, while Telegram,
+Feishu and WeCom scope by chat). `/threads` sends the chat's recorded owned
+IDs to `/v1/threads/summary` (`limit=8`) and filters returned rows by
+`ownsThread` (Telegram groups list only the group's current thread if owned).
+`/resume`, prompts, `/interrupt`, `/compact` and `decideApproval` reject unowned
+threads before calling the Runtime turn or resume endpoints. Loading an
+unmigrated `thread-map.json` imports Weixin's legacy `threadBindings` and keeps
+each chat's current `threadId` as a pending grant only if a single chat
+references it; shared threads are dropped. At startup, `settleLegacyOwners`
+checks pending grants against `GET /v1/threads/<id>` (`createdByBridge`:
+matching bridge `system_prompt` and configured `workspace`), dropping missing or
+foreign-client threads and retrying unreachable Runtime checks every 30 seconds
+while keeping recovery paused and answering commands with the fixed unowned-thread
+reply.
+
+Weixin also binds durable prompts, accepted operation IDs, saved replies and
+uncertain deliveries to the paired bot account; a replacement account cannot
+inherit them. Reply context tokens also belong to the paired account, including
+pending work that has not yet received a thread ID. New inbound tokens cannot
+overwrite another account's retained context; an unbound legacy token cannot
+authorize a reply. An explicit `/new` after account replacement durably retains
+the old private receipt for human review before binding a fresh conversation; it
+never resubmits the old prompt or uncertain reply. Retired receipts are bounded
+per chat by the configured action limit (200 by default) and 1 MiB. Reaching
+either limit stops replacement before creating a thread; the operator must back
+up and reconcile the private records rather than evict uncertain work.
+Same-account pending work still blocks replacement. Weixin stays inside a
+23.5-hour reply window and default 8-send per-message budget (`WEIXIN_MAX_SENDS_PER_MESSAGE`),
+holding overflow behind `继续` / `more` and supporting 6-character approval codes
+(`1 <code>` / `2 <code>`). The live poller uses the same tested batch handler
+(`handleMessageOnce`): failed handling cannot advance its cursor. QR setup and
+reconnect behavior still require real service qualification. These guarantees
+come from the same Core owner.
 
 ## Signed webhook intake
 

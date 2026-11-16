@@ -1,4 +1,5 @@
 import test from "node:test";
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import assert from "node:assert/strict";
@@ -7,9 +8,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import url from "node:url";
 import {
-  ApprovalOwnershipError, ThreadStore, decideApproval, settleStoredApproval,
-  createRuntimeClient, activeTurnBlock, readSse, readJsonSafe, compactRuntimeError
+  ApprovalOwnershipError, THREAD_NOT_OWNED_MESSAGE, ThreadOwnershipError, ThreadStore, decideApproval, settleStoredApproval,
+  admitTurn, createRuntimeClient, activeTurnBlock, latestRunningTurn, readThreadEvents, readJsonSafe, compactRuntimeError
 } from "../src/lib.mjs";
+import { isAllowed, isGroupChat } from "../../telegram-bridge/src/lib.mjs";
 import { incomingIdentity as wecomIdentity } from "../../wecom-bridge/src/lib.mjs";
 
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), "..", "..");
@@ -25,10 +27,11 @@ const actors = {
   "telegram-bridge": "telegram-user:alice", "feishu-bridge": "feishu-openId:alice",
   "wecom-bridge": "wecom-user:alice", "weixin-bridge": "weixin-account:bot-a:user:chat-a"
 };
-async function withStore(fn, options = {}) {
+async function withStore(fn, options = {}, ownerScope = "") {
   const dir = await mkdtemp(path.join(tmpdir(), "bridge-approvals-"));
   try {
-    const store = await ThreadStore.open(path.join(dir, "state.json"), { actions: true, ...options });
+    const store = await ThreadStore.open(path.join(dir, "state.json"), { actions: true, messageLimit: 500, ...options });
+    await store.recordThreadOwner(chatId, threadId, ownerScope);
     await store.setChat(chatId, { threadId });
     await fn(store);
   } finally { await rm(dir, { recursive: true, force: true }); }
@@ -43,13 +46,19 @@ function extract(source, name) {
 }
 async function shipping(bridge, names, values) {
   const source = await readFile(path.join(root, bridge, "src/index.mjs"), "utf8");
-  const functions = bridge === "weixin-bridge" && names.includes("turnActor") ? ["accountIdentity", ...names] : names;
+  const functions = [...new Set([
+    ...(bridge === "weixin-bridge" && names.includes("turnActor") ? ["accountIdentity", "weixinActorId", "ownsThread"] : []),
+    ...(bridge === "telegram-bridge" && (names.includes("runPrompt") || names.includes("startPromptTurn"))
+      ? ["recoveryAllowed", "supportsAdmissionRecovery"] : []),
+    ...(bridge === "telegram-bridge" && ["runPrompt", "startPromptTurn", "handleCommand"].some((name) => names.includes(name))
+      ? ["releaseUnownedRecovery", "clearActiveTurn"] : []), ...names
+  ])];
   return new Function(...Object.keys(values), functions.map((name) => extract(source, name)).join("\n") +
     `\nreturn { ${names.join(", ")} };`)(...Object.values(values));
 }
 async function withRuntime(fn) {
   const state = { pending: [{ id: "approval-a", turn_id: turnId }], turns: [], posts: [],
-    startAttempts: 0, accepted: [], failStart: false, acceptDecision: true, events: [] };
+    startAttempts: 0, accepted: [], operations: new Map(), failStart: false, acceptDecision: true, events: [] };
   const server = createServer(async (request, response) => {
     assert.equal(request.headers.authorization, "Bearer bridge-runtime-fixture-token");
     let text = "";
@@ -69,8 +78,15 @@ async function withRuntime(fn) {
       } else {
         const id = `accepted-${state.startAttempts}`;
         state.accepted.push(id);
-        response.end(JSON.stringify({ turn: { id } }));
+        const turn = { id, thread_id: threadId };
+        const operationKey = JSON.parse(text).operation_key;
+        if (operationKey) state.operations.set(operationKey, turn);
+        response.end(JSON.stringify({ turn }));
       }
+    } else if (request.url.includes("/turn-operations/")) {
+      const turn = state.operations.get(decodeURIComponent(request.url.split("/").at(-1)));
+      response.statusCode = turn ? 200 : 404;
+      response.end(JSON.stringify(turn || { error: { message: "operation not found" } }));
     } else if (request.method === "POST") {
       state.posts.push({ route: request.url, body: JSON.parse(text) });
       response.statusCode = state.acceptDecision ? 200 : 503;
@@ -88,23 +104,32 @@ async function withRuntime(fn) {
 }
 function environment(store, runtime, extra = {}) {
   return {
-    threadStore: store, runtimeJson: runtime.runtimeJson, decideRuntimeApproval: decideApproval,
+    threadStore: store, THREAD_NOT_OWNED_MESSAGE, ThreadOwnershipError, runtimeJson: runtime.runtimeJson, decideRuntimeApproval: decideApproval,
     settleStoredApproval, ApprovalOwnershipError, incomingIdentity: wecomIdentity,
+    WECOM_SYSTEM_PROMPT: "fixture prompt", FEISHU_SYSTEM_PROMPT: "fixture prompt", TELEGRAM_SYSTEM_PROMPT: "fixture prompt",
     sendText: async () => {}, replyText: async () => {}, sendTurnText: async () => {},
     parseApprovalDecisionArgs: () => { throw new Error("fixture uses actual parsed approval id"); },
-    ensureThread: async () => store.getChat(chatId), activeTurnBlock,
-    config: { runtimeUrl: runtime.runtimeUrl, turnTimeoutMs: 1000, maxReplyChars: 10000 },
+    ensureThread: async () => store.getChat(chatId), activeTurnBlock, latestRunningTurn,
+    admitTurn, createHash, isAllowed, isGroupChat, botAccountId: "fixture-bot", activeTurnTasks: new Map(),
+    runtimeCapabilities: { turn_operation_idempotency: true, turn_operation_lookup: true },
+    startTrackedTurnStream: () => {}, delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    config: { runtimeUrl: runtime.runtimeUrl, turnTimeoutMs: 1000, maxReplyChars: 10000, allowGroups: true, allowUnlisted: true, allowlist: [] },
     controlKeyboard: () => ({}), activeTurnKeyboard: () => ({}), helpText: () => "",
     clearActiveTurn: () => store.patchChat(chatId, { activeTurnId: null }), stopping: false,
     streamTurnEvents: async (chat, thread, turn) => {
       const reopened = await ThreadStore.open(store.filePath, { actions: true });
       assert.ok(reopened.turnOrigin(chat, thread, turn), "origin must be durable before delivery");
+      return true;
     }, ...extra
   };
 }
-async function invokeStart(bridge, fn, user = "alice") {
-  if (bridge === "telegram-bridge") return fn(chatId, "prompt", { actorId: `telegram-user:${user}` });
-  return fn(chatId, "prompt", identities[bridge](user));
+let incomingNumber = 0;
+async function invokeStart(bridge, functions, user = "alice") {
+  if (bridge === "telegram-bridge") {
+    await functions.startPromptTurn(chatId, "prompt", { ...identities[bridge](user), messageKey: `message-${++incomingNumber}` });
+    return functions.runPrompt(chatId);
+  }
+  return functions.runPrompt(chatId, "prompt", identities[bridge](user));
 }
 
 test("approval tokens retain 128-bit entropy and require their accepted human and turn", async () => {
@@ -207,7 +232,7 @@ for (const bridge of Object.keys(identities)) {
       assert.equal(runtime.state.posts.length, 0);
       await consumer(chatId, action, identities[bridge]("alice"));
       assert.deepEqual(runtime.state.posts, [{ route: "/v1/approvals/approval-a", body: { decision: "allow", remember: bridge !== "wecom-bridge" } }]);
-    }));
+    }, {}, bridge === "weixin-bridge" ? actors[bridge] : ""));
   });
 }
 
@@ -228,7 +253,7 @@ test("Weixin shipping decision rejects replacement or missing account identity w
     botAccount.accountId = "bot-a";
     await consumer(chatId, action);
     assert.deepEqual(runtime.state.posts, [{ route: "/v1/approvals/approval-a", body: { decision: "allow", remember: true } }]);
-  }));
+  }, {}, actors["weixin-bridge"]));
 });
 
 test("Weixin shipping decision refuses a legacy origin without bot account provenance after reload", async () => {
@@ -240,40 +265,43 @@ test("Weixin shipping decision refuses a legacy origin without bot account prove
     await consumer(chatId, { decision: "allow", approvalId: "approval-a", remember: true });
     assert.equal(runtime.state.posts.length, 0);
     assert.equal(reopened.turnOrigin(chatId, threadId, turnId).actorId, "weixin-user:chat-a");
-  }));
+  }, {}, actors["weixin-bridge"]));
 });
 
 for (const bridge of ["telegram-bridge", "feishu-bridge", "wecom-bridge"]) {
   test(`${bridge} accepted start binds before delivery; failed, queued and later starts cannot transfer an old approval`, async () => {
     await withRuntime(async (runtime) => withStore(async (store) => {
-      const functions = await shipping(bridge, ["turnActor", "runPrompt", "decideApproval"], environment(store, runtime, bridge === "wecom-bridge" ? {
+      const functions = await shipping(bridge, ["turnActor", "runPrompt", "decideApproval", ...(bridge === "telegram-bridge" ? ["startPromptTurn"] : [])], environment(store, runtime, bridge === "wecom-bridge" ? {
         streamTurnEvents: async (chat, frame, thread, turn) => {
           const reopened = await ThreadStore.open(store.filePath, { actions: true });
           assert.ok(reopened.turnOrigin(chat, thread, turn), "origin must be durable before delivery");
         }
       } : {}));
-      await invokeStart(bridge, functions.runPrompt, "alice");
+      await invokeStart(bridge, functions, "alice");
       const first = runtime.state.accepted[0];
       assert.equal(store.turnOrigin(chatId, threadId, first).actorId, actors[bridge]);
       runtime.state.pending = [{ id: "approval-a", turn_id: first }];
       await store.patchChat(chatId, { authorizedIdentity: identities[bridge]("bob") });
       runtime.state.failStart = true;
-      await assert.rejects(invokeStart(bridge, functions.runPrompt, "bob"), /start rejected/);
+      await assert.rejects(invokeStart(bridge, functions, "bob"), /start rejected/);
       assert.equal(store.turnOrigin(chatId, threadId, first).actorId, actors[bridge]);
       runtime.state.failStart = false;
       runtime.state.turns = [{ id: first, status: "queued" }];
       const before = runtime.state.startAttempts;
-      await invokeStart(bridge, functions.runPrompt, "bob");
+      await invokeStart(bridge, functions, "bob");
       assert.equal(runtime.state.startAttempts, before);
       runtime.state.turns = [];
-      await invokeStart(bridge, functions.runPrompt, "bob");
+      await invokeStart(bridge, functions, "bob");
       assert.equal(store.turnOrigin(chatId, threadId, first).actorId, actors[bridge]);
       const reopened = await ThreadStore.open(store.filePath, { actions: true });
       const { decideApproval: consumer } = await shipping(bridge, ["turnActor", "decideApproval"], environment(reopened, runtime));
+      // The WeCom bridge steers the still-active turn with the follow-up text,
+      // so count approval decisions only, not every runtime POST.
+      const approvalPosts = () => runtime.state.posts.filter((post) => post.route.startsWith("/v1/approvals"));
       await consumer(chatId, { decision: "allow", approvalId: "approval-a" }, identities[bridge]("bob"));
-      assert.equal(runtime.state.posts.length, 0);
+      assert.equal(approvalPosts().length, 0);
       await consumer(chatId, { decision: "allow", approvalId: "approval-a" }, identities[bridge]("alice"));
-      assert.equal(runtime.state.posts.length, 1);
+      assert.equal(approvalPosts().length, 1);
     }));
   });
 }
@@ -281,10 +309,11 @@ for (const bridge of ["telegram-bridge", "feishu-bridge", "wecom-bridge"]) {
 test("Telegram shipping SSE mints a bound button and actual callback human controls retry, restart and replay", async () => {
   await withRuntime(async (runtime) => withStore(async (store) => {
     await store.recordTurnOrigin(chatId, threadId, turnId, owner.actorId);
-    runtime.state.events = [{ seq: 1, turn_id: turnId, event: "approval.required", payload: { approval_id: "approval-a" } }];
+    runtime.state.events = [{ seq: 1, thread_id: threadId, turn_id: turnId, event: "approval.required", payload: { approval_id: "approval-a" } },
+      { event: "stream.end", thread_id: threadId, last_seq: 1, retryable: true, reason: "runtime_shutdown" }];
     const telegram = await import("../../telegram-bridge/src/lib.mjs");
     const env = environment(store, runtime, {
-      authHeaders: runtime.authHeaders, readSse, readJsonSafe, compactRuntimeError,
+      authHeaders: runtime.authHeaders, readThreadEvents, readJsonSafe, compactRuntimeError,
       sendTypingAction: async () => {}, TYPING_INTERVAL_MS: 2000, LAST_SEQ_FLUSH_INTERVAL_MS: 2000,
       approvalKeyboard: telegram.approvalKeyboard
     });
@@ -331,7 +360,7 @@ test("Telegram and Feishu actual dispatch passes the admitted human to prompt an
     const lib = await import(`../../${bridge}/src/lib.mjs`);
     const calls = [];
     const identity = identities[bridge]("alice");
-    const values = { ...lib, sendText: async () => {},
+    const values = { ...lib, sendText: async () => {}, threadStore: { getChat: async () => null },
       decideApproval: async (...args) => calls.push(args),
       startPromptTurn: (...args) => calls.push(args),
       runPrompt: async (...args) => calls.push(args) };
@@ -374,10 +403,11 @@ test("Telegram and Feishu shipping inbound events retain the actual admitted hum
           assert.equal((await reopened.getChat(chat)).activeTurnId, turn, `${bridge} must persist the accepted turn before streaming`);
           assert.equal(reopened.turnOrigin(chat, thread, turn).actorId, actors[bridge]);
           delivered();
+          return true;
         }
       });
       const names = bridge === "telegram-bridge" ?
-        ["turnActor", "runPrompt", "startPromptTurn", "handleCommand", "rememberAuthorizedIdentity", "handleIncomingUpdate"] :
+        ["turnActor", "runPrompt", "startPromptTurn", "startTrackedTurnStream", "handleCommand", "rememberAuthorizedIdentity", "handleIncomingUpdate"] :
         ["turnActor", "runPrompt", "handleCommand", "handleIncomingMessage"];
       const handlers = await shipping(bridge, names, values);
       if (bridge === "telegram-bridge") {
@@ -401,10 +431,11 @@ test("WeCom shipping SSE and natural approval callback use durable Runtime-turn 
   await withRuntime(async (runtime) => withStore(async (store) => {
     const lib = await import("../../wecom-bridge/src/lib.mjs");
     await store.recordTurnOrigin(chatId, threadId, turnId, actors["wecom-bridge"]);
-    runtime.state.events = [{ seq: 1, turn_id: turnId, event: "approval.required", payload: { approval_id: "approval-a" } }];
+    runtime.state.events = [{ seq: 1, thread_id: threadId, turn_id: turnId, event: "approval.required", payload: { approval_id: "approval-a" } },
+      { event: "stream.end", thread_id: threadId, last_seq: 1, retryable: true, reason: "runtime_shutdown" }];
     const pendingApprovals = new Map();
     const values = environment(store, runtime, {
-      ...lib, authHeaders: runtime.authHeaders, readSse, readJsonSafe, compactRuntimeError,
+      ...lib, authHeaders: runtime.authHeaders, readThreadEvents, readJsonSafe, compactRuntimeError,
       config: { runtimeUrl: runtime.runtimeUrl, turnTimeoutMs: 1000, approvalTimeoutMs: 10000 },
       pendingApprovals, generateReqId: () => "stream-fixture", client: { replyStream: async () => {} }
     });

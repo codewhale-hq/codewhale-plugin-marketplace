@@ -5,6 +5,8 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const DEFAULT_ACTION_TTL_MS = 24 * 60 * 60 * 1000;
 
+export const THREAD_NOT_OWNED_MESSAGE = "This chat can only use threads it started. Send /new to start a new thread.";
+
 function normalizeCursorValue(value, fallback = 0) {
   const number = Number(value);
   if (Number.isFinite(number) && number >= 0) return Math.floor(number);
@@ -66,7 +68,7 @@ export async function writeFileDurable(filePath, contents, { mode = 0o600 } = {}
 
 export class ThreadStore {
   static async open(filePath, options = {}) {
-    const store = new ThreadStore(filePath, options);
+    const store = new this(filePath, options);
     await store.load();
     return store;
   }
@@ -78,17 +80,21 @@ export class ThreadStore {
       actions: options.actions === true,
       actionLimit: options.actionLimit || 200,
       actionTtlMs: options.actionTtlMs || DEFAULT_ACTION_TTL_MS,
-      privateMode: options.privateMode === true
+      privateMode: options.privateMode === true,
+      ownerLimit: options.ownerLimit || options.actionLimit || 200,
+      legacyOwnerScope: typeof options.legacyOwnerScope === "function" ? options.legacyOwnerScope : () => ""
     };
     this.data = { chats: {} };
     this.saveDirty = false;
     this.savePending = null;
+    this.handlingMessages = new Map();
     this.ensureShape();
   }
 
   ensureShape() {
     if (!this.data || typeof this.data !== "object") this.data = {};
     if (!this.data.chats || typeof this.data.chats !== "object") this.data.chats = {};
+    if (!Array.isArray(this.data.threadOwners)) this.data.threadOwners = [];
     if (this.options.messageLimit > 0 && !Array.isArray(this.data.messages)) {
       this.data.messages = [];
     }
@@ -106,8 +112,11 @@ export class ThreadStore {
   async load() {
     try {
       const raw = await readFile(this.filePath, "utf8");
-      this.data = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const unmigrated = !parsed || typeof parsed !== "object" || !Array.isArray(parsed.threadOwners);
+      this.data = parsed;
       this.ensureShape();
+      if (unmigrated) this.data.threadOwners = this.legacyThreadOwners();
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -117,41 +126,59 @@ export class ThreadStore {
    * Claim one inbound message before acting on it. "new": handle it now (it
    * is recorded as in flight first, durably). "done": a finished duplicate.
    * "interrupted": an earlier process claimed it and stopped before
-   * completeMessage, so its effect is unknown; the caller reports that
-   * instead of running it again. Callers handle messages sequentially — a
-   * key still in flight in this process is not a restart.
+   * completeMessage. The caller reports the unknown outcome and completes
+   * the claim after the report succeeds.
    */
   async claimMessage(messageKey) {
     if (!messageKey || this.options.messageLimit <= 0) return "new";
     this.ensureShape();
     const inflight = this.data.inflight;
-    if (this.data.messages.includes(messageKey)) {
-      if (!Object.hasOwn(inflight, messageKey)) return "done";
-      delete inflight[messageKey];
-      await this.save();
-      return "interrupted";
+    if (Object.hasOwn(inflight, messageKey)) return "interrupted";
+    if (this.data.messages.includes(messageKey)) return "done";
+    if (Object.keys(inflight).length >= this.options.messageLimit) {
+      throw new Error("Too many unfinished bridge messages. Reconcile their outcomes before accepting more.");
     }
-    this.data.messages.push(messageKey);
-    this.data.messages = this.data.messages.slice(-this.options.messageLimit);
-    for (const key of Object.keys(inflight)) if (!this.data.messages.includes(key)) delete inflight[key];
-    inflight[messageKey] = new Date().toISOString();
+    this.data.inflight = { ...inflight, [messageKey]: new Date().toISOString() };
     await this.save();
     return "new";
   }
 
-  /** Mark a claimed message handled (whether it succeeded or failed in-process). */
+  /** Mark a claimed message handled after its action or interruption report finishes. */
   async completeMessage(messageKey) {
     if (!messageKey || !this.data.inflight || !Object.hasOwn(this.data.inflight, messageKey)) return;
     delete this.data.inflight[messageKey];
+    if (!this.data.messages.includes(messageKey)) {
+      this.data.messages.push(messageKey);
+      this.data.messages = this.data.messages.slice(-this.options.messageLimit);
+    }
     await this.save();
   }
 
-  async recordMessage(messageKey) {
-    if (!messageKey || this.options.messageLimit <= 0) return false;
+  async handleMessageOnce(messageKey, handle, reportInterrupted) {
+    if (!messageKey || this.options.messageLimit <= 0) return handle();
+    if (this.handlingMessages.has(messageKey)) return this.handlingMessages.get(messageKey);
+    const pending = Promise.resolve().then(async () => {
+      const claim = await this.claimMessage(messageKey);
+      if (claim === "done") return;
+      if (claim === "interrupted") await reportInterrupted();
+      else await handle();
+      await this.completeMessage(messageKey);
+    }).finally(() => this.handlingMessages.delete(messageKey));
+    this.handlingMessages.set(messageKey, pending);
+    return pending;
+  }
+
+  async recordMessage(messageKey, chatId = null, patch = null) {
+    if (patch && !chatId) throw new Error("Durable admission requires a chat binding");
+    if (!messageKey || this.options.messageLimit <= 0) {
+      if (patch) throw new Error("Durable admission requires message retention");
+      return false;
+    }
     this.ensureShape();
     if (this.data.messages.includes(messageKey)) return true;
     this.data.messages.push(messageKey);
     this.data.messages = this.data.messages.slice(-this.options.messageLimit);
+    if (chatId && patch) this.data.chats[chatId] = { ...this.data.chats[chatId], ...patch };
     await this.save();
     return false;
   }
@@ -194,6 +221,109 @@ export class ThreadStore {
     this.data.chats[chatId] = { ...current, ...patch };
     await this.save();
     return this.data.chats[chatId];
+  }
+
+  legacyThreadOwners() {
+    const chatsByThread = new Map();
+    const reference = (threadId, chatId) => {
+      if (!chatsByThread.has(threadId)) chatsByThread.set(threadId, new Set());
+      chatsByThread.get(threadId).add(chatId);
+    };
+    const candidates = [];
+    for (const [chatId, state] of Object.entries(this.data.chats || {})) {
+      if (!state || typeof state !== "object") continue;
+      const own = [];
+      for (const entry of Array.isArray(state.threadBindings) ? state.threadBindings : []) {
+        if (!entry?.threadId || !entry.actorId) continue;
+        reference(entry.threadId, chatId);
+        own.push({ threadId: entry.threadId, chatId, scope: String(entry.actorId) });
+      }
+      if (state.threadId) {
+        reference(state.threadId, chatId);
+        const scope = this.options.legacyOwnerScope(chatId, state);
+        if (typeof scope === "string") own.push({ threadId: state.threadId, chatId, scope, legacy: true });
+      }
+      candidates.push(...own.slice(-this.options.ownerLimit));
+    }
+    const seen = new Set();
+    return candidates.filter((entry) => {
+      const key = JSON.stringify([entry.threadId, entry.chatId, entry.scope]);
+      if (seen.has(key) || chatsByThread.get(entry.threadId).size !== 1) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  ownsThread(chatId, threadId, scope = "") {
+    if (!chatId || !threadId) return false;
+    return this.data.threadOwners.some((entry) => entry.legacy !== true && entry.threadId === threadId && entry.chatId === chatId && entry.scope === scope);
+  }
+
+  ownershipPending(chatId, threadId, scope = "") {
+    if (!chatId || !threadId || this.ownsThread(chatId, threadId, scope)) return false;
+    return this.data.threadOwners.some((entry) => entry.legacy === true && entry.threadId === threadId && entry.chatId === chatId && entry.scope === scope);
+  }
+
+  legacyOwnerCount() {
+    return this.data.threadOwners.filter((entry) => entry.legacy === true).length;
+  }
+
+  async verifyLegacyOwners(runtimeJson, accept, { concurrency = 8 } = {}) {
+    const ids = [...new Set(this.data.threadOwners.filter((entry) => entry.legacy === true).map((entry) => entry.threadId))];
+    const verdicts = new Map();
+    for (let index = 0; index < ids.length; index += concurrency) {
+      await Promise.all(ids.slice(index, index + concurrency).map(async (threadId) => {
+        try {
+          const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(threadId)}`);
+          verdicts.set(threadId, accept(detail?.thread ?? detail) === true);
+        } catch (error) {
+          if (error?.status === 404) verdicts.set(threadId, false);
+        }
+      }));
+    }
+    if (verdicts.size) {
+      this.data.threadOwners = this.data.threadOwners.flatMap((entry) => {
+        if (entry.legacy !== true || !verdicts.has(entry.threadId)) return [entry];
+        if (!verdicts.get(entry.threadId)) return [];
+        const { legacy, ...confirmed } = entry;
+        return [confirmed];
+      });
+      await this.save();
+    }
+    return this.legacyOwnerCount();
+  }
+
+  requireOwnedThread(chatId, threadId, scope = "") {
+    if (!this.ownsThread(chatId, threadId, scope)) throw new ThreadOwnershipError(THREAD_NOT_OWNED_MESSAGE);
+  }
+
+  ownedThreadIds(chatId, scope = "") {
+    if (!chatId) return [];
+    return this.data.threadOwners
+      .filter((entry) => entry.legacy !== true && entry.chatId === chatId && entry.scope === scope)
+      .map((entry) => entry.threadId)
+      .reverse();
+  }
+
+  async recordThreadOwner(chatId, threadId, scope = "") {
+    if (!chatId || !threadId) throw new ThreadOwnershipError(THREAD_NOT_OWNED_MESSAGE);
+    const held = this.data.threadOwners.find((entry) => entry.threadId === threadId);
+    if (held) {
+      if (held.chatId === chatId && held.scope === scope) return;
+      throw new ThreadOwnershipError(THREAD_NOT_OWNED_MESSAGE);
+    }
+    const owners = [...this.data.threadOwners, { threadId, chatId, scope }];
+    const mine = owners.filter((entry) => entry.chatId === chatId);
+    const evicted = new Set(mine.slice(0, Math.max(0, mine.length - this.options.ownerLimit)));
+    this.data.threadOwners = owners.filter((entry) => !evicted.has(entry));
+    await this.save();
+  }
+
+  async finishObservedTurn(chatId, threadId, turnId) {
+    const current = this.data.chats[chatId];
+    if (turnId && current?.threadId === threadId && current.activeTurnId === turnId) {
+      await this.patchChat(chatId, { activeTurnId: null, updatedAt: new Date().toISOString() });
+    }
   }
 
   /**
@@ -338,16 +468,59 @@ export class ApprovalOwnershipError extends Error {
   }
 }
 
+export class ThreadOwnershipError extends Error {
+  constructor(message = THREAD_NOT_OWNED_MESSAGE) {
+    super(message);
+    this.name = "ThreadOwnershipError";
+  }
+}
+
+export async function settleLegacyOwners(store, runtimeJson, accept, { retryMs = 30_000, timeoutMs = 15_000, onSettled = null } = {}) {
+  const bounded = (route) => runtimeJson(route, { signal: AbortSignal.timeout(timeoutMs) });
+  const run = async (retried) => {
+    const pendingBefore = new Set(
+      (store.data?.threadOwners || []).filter((entry) => entry.legacy === true).map((entry) => entry.threadId)
+    );
+    const remaining = await store.verifyLegacyOwners(bounded, accept).catch(() => store.legacyOwnerCount());
+    if (retried && typeof onSettled === "function" && pendingBefore.size) {
+      const stillPending = new Set(
+        (store.data?.threadOwners || []).filter((entry) => entry.legacy === true).map((entry) => entry.threadId)
+      );
+      const settled = new Set([...pendingBefore].filter((id) => !stillPending.has(id)));
+      if (settled.size) {
+        await Promise.resolve(onSettled(settled)).catch((error) => {
+          console.error("failed after settling legacy thread owners", error);
+        });
+      }
+    }
+    if (remaining > 0) setTimeout(() => void run(true), retryMs).unref();
+  };
+  await run(false);
+}
+
+export function createdByBridge(thread, { systemPrompt, workspace }) {
+  return thread?.system_prompt === systemPrompt && String(thread?.workspace ?? "") === workspace;
+}
+
+export async function listOwnedThreads(store, runtimeJson, chatId, scope = "", limit = 8) {
+  const ids = store.ownedThreadIds(chatId, scope);
+  if (!ids.length) return [];
+  const query = new URLSearchParams({ limit: String(limit), include_archived: "true", thread_ids: ids.join(",") });
+  const rows = await runtimeJson(`/v1/threads/summary?${query}`);
+  return (Array.isArray(rows) ? rows : []).filter((thread) => store.ownsThread(chatId, thread?.id, scope)).slice(0, limit);
+}
+
 /**
  * Runtime owns pending approvals and their turn ids. The existing chat store
  * owns the immutable human who initiated that accepted turn. Admission to a
  * group, a newer sender or a legacy unbound button does not grant this authority.
  */
-export async function decideApproval(runtimeJson, { store, chatId, actorId, approvalId, decision, remember = false, turnId = null }) {
+export async function decideApproval(runtimeJson, { store, chatId, actorId, approvalId, decision, remember = false, turnId = null, ownsThread = null }) {
   if (decision !== "allow" && decision !== "deny") throw new ApprovalOwnershipError("decision must be allow or deny");
   const state = await store.getChat(chatId);
   const threadId = state?.threadId;
   if (!threadId) throw new ApprovalOwnershipError("this chat has no Runtime thread yet");
+  if (typeof ownsThread === "function" && !ownsThread(threadId)) throw new ThreadOwnershipError(THREAD_NOT_OWNED_MESSAGE);
   if (!actorId) throw new ApprovalOwnershipError("missing initiating human");
   if (!approvalId) throw new ApprovalOwnershipError("missing approval id");
   const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(threadId)}`);
@@ -533,23 +706,50 @@ export function preservedChatStateFields(state = {}, fields = ["model", "authori
   return preserved;
 }
 
-export function splitMessage(text, maxChars = 3500) {
+export function splitMessage(text, maxChars = 3500, maxBytes = 0) {
   const value = String(text || "");
   const limit = Math.max(1, Math.floor(Number(maxChars) || 3500));
   // Materialize code points once; all chunking below works on index ranges
   // instead of re-running Array.from over the shrinking remainder.
   const chars = Array.from(value);
-  if (chars.length <= limit) return value ? [value] : [];
-  const chunks = [];
-  let offset = 0;
-  let openFence = null;
-  while (offset < chars.length) {
-    const next = takeRenderedSplitMessageChunk(chars, offset, limit, openFence);
-    chunks.push(next.chunk);
-    offset = next.offset;
-    openFence = next.openFence;
+  let chunks;
+  if (chars.length <= limit) {
+    chunks = value ? [value] : [];
+  } else {
+    chunks = [];
+    let offset = 0;
+    let openFence = null;
+    while (offset < chars.length) {
+      const next = takeRenderedSplitMessageChunk(chars, offset, limit, openFence);
+      chunks.push(next.chunk);
+      offset = next.offset;
+      openFence = next.openFence;
+    }
   }
-  return chunks;
+  const byteLimit = Math.floor(Number(maxBytes) || 0);
+  if (byteLimit <= 0) return chunks;
+  // Transport caps such as WeCom's 4096-byte message limit are measured in
+  // UTF-8 bytes, not characters: a 3500-character CJK reply is ~10.5 KB and
+  // gets silently truncated. Split any oversized chunk on code-point bounds.
+  return chunks.flatMap((chunk) => splitChunkByBytes(chunk, byteLimit));
+}
+
+function splitChunkByBytes(chunk, maxBytes) {
+  const out = [];
+  let buf = "";
+  let size = 0;
+  for (const ch of String(chunk || "")) {
+    const b = Buffer.byteLength(ch, "utf8");
+    if (size + b > maxBytes && buf) {
+      out.push(buf);
+      buf = "";
+      size = 0;
+    }
+    buf += ch;
+    size += b;
+  }
+  if (buf) out.push(buf);
+  return out;
 }
 
 function takeRenderedSplitMessageChunk(chars, offset, maxChars, openFence) {
@@ -607,36 +807,101 @@ function updateCodeFenceState(openFence, text) {
   return current;
 }
 
-export async function readJsonSafe(response) {
-  const text = await response.text();
-  if (!text) return {};
+export async function readJsonSafe(response, { jsonOnly = false } = {}) {
+  const limit = response.ok ? 8 * 1024 * 1024 : 4096;
+  const oversized = () => {
+    if (response.ok) throw new Error("Runtime response exceeds the size limit");
+    return jsonOnly ? null : "Runtime error body exceeds the size limit";
+  };
+  if (Number(response.headers.get("content-length")) > limit) {
+    await response.body?.cancel().catch(() => {});
+    return oversized();
+  }
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  if (response.body) {
+    for await (const chunk of response.body) {
+      size += chunk.byteLength;
+      if (size > limit) return oversized();
+      text += decoder.decode(chunk, { stream: true });
+    }
+    text += decoder.decode();
+  }
+  if (!text) return jsonOnly ? null : {};
   try {
     return JSON.parse(text);
   } catch {
-    return text;
+    return jsonOnly ? null : text;
   }
 }
+
+const MAX_EVENT_BYTES = 2 * 1024 * 1024;
 
 export async function* readSse(response) {
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  let line = Buffer.allocUnsafe(1024);
+  let length = 0, frameBytes = 0, afterCr = false;
+  let event = "", data = "", sawData = false;
+
   for await (const chunk of response.body) {
-    buffer += decoder.decode(chunk, { stream: true });
-    let boundary;
-    while ((boundary = buffer.indexOf("\n\n")) >= 0) {
-      const raw = buffer.slice(0, boundary).replace(/\r/g, "");
-      buffer = buffer.slice(boundary + 2);
-      const event = { event: "", data: "" };
-      for (const line of raw.split("\n")) {
-        if (line.startsWith("event:")) event.event = line.slice(6).trim();
-        if (line.startsWith("data:")) event.data += line.slice(5).trim();
+    for (const byte of chunk) {
+      const pairedLf = afterCr && byte === 10;
+      afterCr = byte === 13;
+      if (pairedLf && frameBytes === 0) continue;
+      if (++frameBytes > MAX_EVENT_BYTES) throw new Error("Runtime event frame exceeds the size limit");
+      if (pairedLf) continue;
+      if (byte !== 10 && byte !== 13) {
+        if (length === line.length) {
+          const larger = Buffer.allocUnsafe(Math.min(MAX_EVENT_BYTES, line.length * 2));
+          line.copy(larger);
+          line = larger;
+        }
+        line[length++] = byte;
+        continue;
       }
-      yield event;
+      if (length === 0) {
+        if (sawData || event) yield { event, data };
+        event = "";
+        data = "";
+        sawData = false;
+        frameBytes = 0;
+        continue;
+      }
+      const field = decoder.decode(line.subarray(0, length));
+      length = 0;
+      const colon = field.indexOf(":");
+      const name = colon < 0 ? field : field.slice(0, colon);
+      const value = colon < 0 ? "" : field.slice(colon + (field[colon + 1] === " " ? 2 : 1));
+      if (name === "event") event = value;
+      if (name === "data") {
+        data += (sawData ? "\n" : "") + value;
+        sawData = true;
+      }
     }
   }
+  if (frameBytes) throw new Error("Runtime event stream ended inside a frame");
 }
 
-export function createRuntimeClient({ runtimeUrl, runtimeToken }) {
+export async function* readThreadEvents(response, threadId) {
+  if (!threadId) throw new Error("Missing expected Runtime thread identity");
+  for await (const { data } of readSse(response)) {
+    if (!data) continue;
+    const record = JSON.parse(data);
+    if (record?.thread_id !== threadId || typeof record.event !== "string" || !record.event) {
+      throw new Error("Invalid Runtime event or thread identity");
+    }
+    if (record.event === "stream.end") {
+      yield record;
+      return;
+    }
+    if (!Number.isSafeInteger(record.seq) || record.seq < 0) throw new Error("Invalid Runtime event sequence");
+    yield record;
+  }
+  throw new Error("Runtime event stream ended before a terminal event");
+}
+
+export function createRuntimeClient({ runtimeUrl, runtimeToken, runtimeRequestTimeoutMs }) {
   function authHeaders() {
     return { authorization: `Bearer ${runtimeToken}` };
   }
@@ -648,11 +913,14 @@ export function createRuntimeClient({ runtimeUrl, runtimeToken }) {
         ...(options.auth === false ? {} : authHeaders()),
         ...(options.body ? { "content-type": "application/json" } : {})
       },
-      body: options.body ? JSON.stringify(options.body) : undefined
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: options.signal || (runtimeRequestTimeoutMs ? AbortSignal.timeout(runtimeRequestTimeoutMs) : undefined)
     });
     const body = await readJsonSafe(response);
     if (!response.ok) {
-      throw new Error(compactRuntimeError(response.status, body));
+      const error = new Error(compactRuntimeError(response.status, body));
+      error.status = response.status;
+      throw error;
     }
     return body;
   }
@@ -666,6 +934,93 @@ export function compactRuntimeError(status, body) {
     body?.message ||
     (typeof body === "string" ? body : JSON.stringify(body));
   return `Runtime API request failed (${status}): ${message}`;
+}
+
+export function questionText(request) {
+  const questions = Array.isArray(request?.questions) ? request.questions : [];
+  const lines = ["需要你回答 / Codewhale is asking"];
+  for (const [index, question] of questions.entries()) {
+    const prefix = questions.length > 1 ? `${index + 1}. ` : "";
+    lines.push(`${prefix}${question.header ? `${question.header}: ` : ""}${question.question || ""}`);
+    for (const [optionIndex, option] of (question.options || []).entries()) {
+      const description = String(option.description || "").trim();
+      lines.push(`  ${optionIndex + 1}) ${option.label}${option.description ? ` - ${description.length > 120 ? `${description.slice(0, 119)}…` : description}` : ""}`);
+    }
+  }
+  lines.push(questions.length > 1
+    ? "每行回答一个问题，可回复选项编号或文字。/ Answer one question per line, by option number or in words."
+    : "回复选项编号或文字。/ Reply with an option number or in words.");
+  return lines.join("\n");
+}
+
+export function parseQuestionAnswers(request, text) {
+  const questions = Array.isArray(request?.questions) ? request.questions : [];
+  if (!questions.length) return null;
+  const replies = questions.length > 1
+    ? String(text || "").split(/\n+/).map((line) => line.trim()).filter(Boolean)
+    : [String(text || "").trim()];
+  if (replies.length !== questions.length || replies.some((reply) => !reply)) return null;
+  const answers = [];
+  for (const [index, question] of questions.entries()) {
+    const reply = replies[index];
+    const options = question.options || [];
+    const picks = question.multi_select ? reply.split(/[\s,，、]+/u).filter(Boolean) : [reply];
+    const chosen = picks.every((pick) => /^\d+$/.test(pick) && Number(pick) >= 1 && Number(pick) <= options.length)
+      ? picks.map((pick) => options[Number(pick) - 1])
+      : options.filter((option) => option.label.toLowerCase() === reply.toLowerCase());
+    if (chosen.length) {
+      for (const option of chosen) answers.push({ id: question.id, label: option.label, value: option.label });
+    } else if (question.allow_free_text || !options.length) {
+      answers.push({ id: question.id, label: "Other", value: reply });
+    } else {
+      return null;
+    }
+  }
+  return answers;
+}
+
+export async function admitTurn({ runtimeJson, pending, capabilities, persistPending, ensureThread }) {
+  if (!pending?.request || (pending.operationKey && pending.request.operation_key !== pending.operationKey)) {
+    throw new Error("Invalid retained turn admission");
+  }
+  if (pending.operationKey && (capabilities?.turn_operation_idempotency !== true || capabilities?.turn_operation_lookup !== true)) {
+    return { pending, turn: null, uncertain: true };
+  }
+  if (!pending.threadId) {
+    const threadId = await ensureThread(pending.threadRequest);
+    if (!threadId) throw new Error("Turn admission requires a durable thread binding");
+    pending = { ...pending, threadId };
+    await persistPending(pending);
+  }
+  if (pending.sinceSeq === null) {
+    const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(pending.threadId)}`);
+    if (latestRunningTurn(detail)) return { pending, turn: null, blocked: true };
+    pending = { ...pending, sinceSeq: Number(detail.latest_seq || 0) };
+    await persistPending(pending);
+  }
+  let turn;
+  if (pending.submitted) {
+    if (!pending.operationKey || capabilities?.turn_operation_idempotency !== true || capabilities?.turn_operation_lookup !== true) {
+      return { pending, turn: null, uncertain: true };
+    }
+    try {
+      turn = await runtimeJson(`/v1/threads/${encodeURIComponent(pending.threadId)}/turn-operations/${encodeURIComponent(pending.operationKey)}`);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(pending.threadId)}`);
+      if (latestRunningTurn(detail)) return { pending, turn: null, blocked: true };
+    }
+  }
+  if (!turn) {
+    pending = { ...pending, submitted: true };
+    await persistPending(pending);
+    const result = await runtimeJson(`/v1/threads/${encodeURIComponent(pending.threadId)}/turns`, {
+      method: "POST", body: pending.request
+    });
+    turn = result?.turn;
+  }
+  if (!turn?.id || turn.thread_id !== pending.threadId) throw new Error("Invalid Engine admission receipt");
+  return { pending, turn };
 }
 
 export function latestRunningTurn(detail) {

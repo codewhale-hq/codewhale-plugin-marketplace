@@ -1,9 +1,13 @@
 import { WSClient, generateReqId } from "@wecom/aibot-node-sdk";
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
 import {
   activeTurnBlock,
   commandAction,
+  createStreamReply,
   compactRuntimeError,
+  formatPublicError,
   helpText,
   incomingIdentity,
   isAllowed,
@@ -12,6 +16,7 @@ import {
   parseBool,
   parseCommand,
   parseList,
+  sanitizeFilename,
   parseApprovalDecisionArgs,
   isApprovalResponse,
   isDenyResponse,
@@ -25,8 +30,13 @@ import {
   ApprovalOwnershipError,
   createRuntimeClient,
   decideApproval as decideRuntimeApproval,
+  createdByBridge,
+  listOwnedThreads,
   readJsonSafe,
-  readSse
+  readThreadEvents,
+  settleLegacyOwners,
+  THREAD_NOT_OWNED_MESSAGE,
+  ThreadOwnershipError
 } from "../../bridge-core/src/lib.mjs";
 
 /** Map of chatId -> latest pending approval info for natural-language approval. */
@@ -45,6 +55,7 @@ const config = {
   runtimeUrl: (process.env.CODEWHALE_RUNTIME_URL || "http://127.0.0.1:7878").replace(/\/+$/, ""),
   runtimeToken: requiredEnv("CODEWHALE_RUNTIME_TOKEN"),
   workspace: process.env.CODEWHALE_WORKSPACE || process.cwd(),
+  mediaDir: process.env.WECOM_MEDIA_DIR || "",
   model: process.env.CODEWHALE_MODEL || "auto",
   mode: process.env.CODEWHALE_MODE || "agent",
   allowShell: parseBool(process.env.CODEWHALE_ALLOW_SHELL, true),
@@ -54,13 +65,18 @@ const config = {
   allowUnlisted: parseBool(process.env.WECOM_ALLOW_UNLISTED, false),
   threadMapPath: process.env.WECOM_THREAD_MAP_PATH || "/var/lib/codewhale-wecom-bridge/thread-map.json",
   maxReplyChars: Number(process.env.WECOM_MAX_REPLY_CHARS || 3500),
+  maxReplyBytes: Number(process.env.WECOM_MAX_REPLY_BYTES || 3800),
   turnTimeoutMs: Number(process.env.CODEWHALE_TURN_TIMEOUT_MS || 900000),
   approvalTimeoutMs: Number(process.env.CODEWHALE_APPROVAL_TIMEOUT_MS || 300000)
 };
 
 const { runtimeJson, authHeaders } = createRuntimeClient(config);
 
+const WECOM_SYSTEM_PROMPT =
+  "You are being controlled from a WeCom (企业微信) phone chat. Keep status updates concise. Ask for tool approvals when needed; do not assume mobile messages imply blanket approval.";
+
 const threadStore = await ThreadStore.open(config.threadMapPath);
+await settleLegacyOwners(threadStore, runtimeJson, (thread) => createdByBridge(thread, { systemPrompt: WECOM_SYSTEM_PROMPT, workspace: config.workspace }));
 
 const client = new WSClient({
   botId: config.botId,
@@ -97,11 +113,52 @@ if (!config.allowlist.length && !config.allowUnlisted) {
 client.connect();
 
 function replyText(frame, text) {
-  const chunks = splitMessage(text, config.maxReplyChars);
+  // WeCom caps one message at 4096 UTF-8 bytes; without the byte cap a
+  // char-split chunk of CJK text is truncated silently.
+  const chunks = splitMessage(text, config.maxReplyChars, config.maxReplyBytes);
   return chunks.reduce(
     (chain, chunk) => chain.then(() => client.replyStream(frame, generateReqId("stream"), chunk, true)),
     Promise.resolve()
   );
+}
+
+function isMediaMessage(msgtype) {
+  return msgtype === "video" || msgtype === "file" || msgtype === "image";
+}
+
+function mediaStorageDir() {
+  return config.mediaDir || path.join(config.workspace, "media");
+}
+
+async function handleMediaMessage(frame, body, identity) {
+  const kind = body.msgtype;
+  const content = body.video || body.file || body.image || {};
+  if (!content.url) {
+    await replyText(frame, "The media message carried no downloadable URL.");
+    return;
+  }
+  const zh = kind === "video" ? "video" : kind === "image" ? "image" : "file";
+  // Download URLs stay valid for ~5 minutes; tell the user before starting.
+  await replyText(frame, `Received ${zh}, downloading (the link is valid for ~5 minutes)…`);
+  try {
+    const { buffer, filename } = await client.downloadFile(content.url, content.aeskey);
+    const dir = mediaStorageDir();
+    mkdirSync(dir, { recursive: true });
+    const fallbackExt = kind === "image" ? "jpg" : kind === "video" ? "mp4" : "bin";
+    const name = sanitizeFilename(filename, `upload-${Date.now()}.${fallbackExt}`);
+    const target = path.join(dir, name);
+    writeFileSync(target, buffer);
+    await replyText(
+      frame,
+      `Saved ${name} (${(buffer.length / 1048576).toFixed(1)} MB) to ${target}\n` +
+        `Send follow-up instructions in chat to use it.`
+    );
+  } catch (error) {
+    await replyText(
+      frame,
+      `Download failed (links expire after ~5 minutes; large files should be re-sent promptly): ${error?.errmsg || error?.message || error}`
+    );
+  }
 }
 
 async function reportHandlerError(frame, context, error) {
@@ -114,7 +171,7 @@ async function reportHandlerError(frame, context, error) {
 }
 
 function publicBridgeError(error) {
-  const message = String(error?.message || error || "unknown error");
+  const message = formatPublicError(error);
   return message.replaceAll(config.runtimeToken, "<redacted>").slice(0, 500);
 }
 
@@ -124,17 +181,22 @@ async function handleIncomingMessage(frame) {
   console.log(`Incoming message: chatId=${identity.chatId} userId=${identity.userId} chatType=${identity.chatType}`);
   if (!identity.chatId || !identity.messageId) return;
 
-  if (body.msgtype && body.msgtype !== "text") {
-    await replyText(frame, "目前仅支持文本消息。");
+  if (body.msgtype && body.msgtype !== "text" && body.msgtype !== "voice" &&
+      !isMediaMessage(body.msgtype)) {
+    await replyText(frame, `Only text, voice, image, video and file messages are supported (got ${body.msgtype}).`);
     return;
   }
 
-  const textContent = body.text?.content || "";
-  const scoped = stripGroupPrefix(textContent, {
-    chatType: identity.chatType,
-    requirePrefix: identity.chatType === "group",
-    prefix: "/ds"
-  });
+  const textContent = body.msgtype === "voice" ? (body.voice?.content || "") : (body.text?.content || "");
+  // Media frames carry no text and must not go through the group-prefix
+  // filter, which rejects empty text and would drop them silently.
+  const scoped = isMediaMessage(body.msgtype)
+    ? { accepted: true, text: "" }
+    : stripGroupPrefix(textContent, {
+        chatType: identity.chatType,
+        requirePrefix: identity.chatType === "group",
+        prefix: "/ds"
+      });
   if (!scoped.accepted) return;
 
   if (!isAllowed(identity, config.allowlist, config.allowUnlisted)) {
@@ -142,8 +204,18 @@ async function handleIncomingMessage(frame) {
     return;
   }
 
+  if (isMediaMessage(body.msgtype)) {
+    await handleMediaMessage(frame, body, identity);
+    return;
+  }
+
   const command = parseCommand(scoped.text);
-  await handleCommand(identity.chatId, command, frame);
+  try {
+    await handleCommand(identity.chatId, command, frame);
+  } catch (error) {
+    if (!(error instanceof ThreadOwnershipError)) throw error;
+    await replyText(frame, THREAD_NOT_OWNED_MESSAGE);
+  }
 }
 
 async function handleEvent(frame) {
@@ -170,7 +242,7 @@ async function handleCommand(chatId, command, frame) {
       await sendThreads(chatId, frame);
       return;
     case "new_thread": {
-      const state = await ensureThread(chatId);
+      const state = await ensureThread(chatId, { forceNew: true });
       await replyText(frame, `Created thread ${state.threadId}`);
       return;
     }
@@ -217,7 +289,10 @@ async function handleCommand(chatId, command, frame) {
 
 async function ensureThread(chatId, { forceNew = false } = {}) {
   const existing = await threadStore.getChat(chatId);
-  if (existing?.threadId && !forceNew) return existing;
+  if (existing?.threadId && !forceNew) {
+    threadStore.requireOwnedThread(chatId, existing.threadId);
+    return existing;
+  }
 
   const effectiveModel = existing?.model || config.model;
 
@@ -231,8 +306,7 @@ async function ensureThread(chatId, { forceNew = false } = {}) {
       trust_mode: config.trustMode,
       auto_approve: config.autoApprove,
       archived: false,
-      system_prompt:
-        "You are being controlled from a WeCom (企业微信) phone chat. Keep status updates concise. Ask for tool approvals when needed; do not assume mobile messages imply blanket approval."
+      system_prompt: WECOM_SYSTEM_PROMPT
     }
   });
 
@@ -243,6 +317,7 @@ async function ensureThread(chatId, { forceNew = false } = {}) {
     activeTurnId: null,
     updatedAt: new Date().toISOString()
   };
+  await threadStore.recordThreadOwner(chatId, thread.id);
   await threadStore.setChat(chatId, state);
   return state;
 }
@@ -267,7 +342,18 @@ async function runPrompt(chatId, prompt, frame) {
       activeTurnId: activeBlock.turnId,
       updatedAt: new Date().toISOString()
     });
-    await replyText(frame, activeBlock.message);
+    // The turn is still running: forward the message as steering guidance
+    // instead of dropping it. The steer may be dropped by the engine if the
+    // turn moved on first; the Runtime reports that verdict.
+    try {
+      await runtimeJson(
+        `/v1/threads/${encodeURIComponent(state.threadId)}/turns/${encodeURIComponent(activeBlock.turnId)}/steer`,
+        { method: "POST", body: { prompt } }
+      );
+      await replyText(frame, `[running] forwarded to the active turn: ${prompt.slice(0, 80)}`);
+    } catch {
+      await replyText(frame, activeBlock.message);
+    }
     return;
   }
   if (state.activeTurnId) {
@@ -304,20 +390,15 @@ async function runPrompt(chatId, prompt, frame) {
   });
   await replyText(frame, `Started turn ${turnId || "(unknown)"}`);
 
-  try {
-    await streamTurnEvents(chatId, frame, state.threadId, turnId, sinceSeq);
-  } finally {
-    await threadStore.patchChat(chatId, {
-      activeTurnId: null,
-      updatedAt: new Date().toISOString()
-    });
+  if (await streamTurnEvents(chatId, frame, state.threadId, turnId, sinceSeq)) {
+    await threadStore.finishObservedTurn(chatId, state.threadId, turnId);
   }
 }
 
 async function streamTurnEvents(chatId, frame, threadId, turnId, sinceSeq) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.turnTimeoutMs);
-  const streamId = generateReqId("stream");
+  const streamer = createStreamReply(client, frame, { genId: () => generateReqId("stream") });
   let responseText = "";
   let latestSeq = sinceSeq;
 
@@ -334,23 +415,16 @@ async function streamTurnEvents(chatId, frame, threadId, turnId, sinceSeq) {
       throw new Error(compactRuntimeError(response.status, body));
     }
 
-    for await (const event of readSse(response)) {
-      if (!event.data) continue;
-      let record;
-      try {
-        record = JSON.parse(event.data);
-      } catch (error) {
-        console.warn("Skipping malformed runtime SSE event:", publicBridgeError(error));
-        continue;
-      }
+    for await (const record of readThreadEvents(response, threadId)) {
+      if (record.event === "stream.end") return false;
       latestSeq = Math.max(latestSeq, Number(record.seq || 0));
       await threadStore.patchChat(chatId, { lastSeq: latestSeq });
 
-      if (turnId && record.turn_id && record.turn_id !== turnId) continue;
+      if (!turnId || record.turn_id !== turnId) continue;
 
       if (record.event === "item.delta" && record.payload?.kind === "agent_message") {
         responseText += record.payload.delta || "";
-        await client.replyStream(frame, streamId, responseText, false);
+        await streamer.update(responseText, false);
       }
 
       if (record.event === "approval.required") {
@@ -387,8 +461,8 @@ async function streamTurnEvents(chatId, frame, threadId, turnId, sinceSeq) {
         const status = turn.status || "completed";
         const errorText = turn.error ? `\n${turn.error}` : "";
         const fallback = status === "completed" ? "Turn completed." : `Turn ${status}.${errorText}`;
-        await client.replyStream(frame, streamId, responseText.trim() || fallback, true);
-        return;
+        await streamer.update(responseText.trim() || fallback, true);
+        return true;
       }
 
       if (record.event === "turn.lifecycle") {
@@ -396,15 +470,15 @@ async function streamTurnEvents(chatId, frame, threadId, turnId, sinceSeq) {
         const status = turn.status || record.payload?.status;
         if (["failed", "canceled", "interrupted"].includes(status)) {
           const errorText = turn.error || record.payload?.error;
-          await client.replyStream(frame, streamId, `Turn ${status}.${errorText ? `\n${errorText}` : ""}`, true);
-          return;
+          await streamer.update(`Turn ${status}.${errorText ? `\n${errorText}` : ""}`, true);
+          return true;
         }
       }
     }
   } catch (error) {
     if (error.name === "AbortError") {
-      await replyText(frame, `Turn timed out after ${Math.round(config.turnTimeoutMs / 1000)}s.`);
-      return;
+      await replyText(frame, `Turn observation timed out after ${Math.round(config.turnTimeoutMs / 1000)}s.`);
+      return false;
     }
     throw error;
   } finally {
@@ -436,9 +510,9 @@ async function sendStatus(chatId, frame) {
 }
 
 async function sendThreads(chatId, frame) {
-  const threads = await runtimeJson("/v1/threads/summary?limit=8&include_archived=true");
+  const threads = await listOwnedThreads(threadStore, runtimeJson, chatId);
   if (!threads.length) {
-    await replyText(frame, "No runtime threads yet.");
+    await replyText(frame, "No threads started by this chat yet.");
     return;
   }
   await replyText(
@@ -456,6 +530,10 @@ async function resumeThread(chatId, args, frame) {
   const threadId = args.trim();
   if (!threadId) {
     await replyText(frame, "Usage: /resume <thread_id>");
+    return;
+  }
+  if (!threadStore.ownsThread(chatId, threadId)) {
+    await replyText(frame, THREAD_NOT_OWNED_MESSAGE);
     return;
   }
   const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(threadId)}`);
@@ -476,6 +554,7 @@ async function interruptActiveTurn(chatId, frame) {
     await replyText(frame, "No runtime thread recorded for this chat.");
     return;
   }
+  threadStore.requireOwnedThread(chatId, state.threadId);
   const detail = await runtimeJson(`/v1/threads/${encodeURIComponent(state.threadId)}`);
   const runningTurn = latestRunningTurn(detail);
   const turnId = state.activeTurnId || runningTurn?.id;
@@ -515,8 +594,12 @@ async function decideApproval(chatId, action, frame) {
     return false;
   }
   try {
-    await decideRuntimeApproval(runtimeJson, { store: threadStore, chatId, actorId: turnActor(incomingIdentity(frame.body)), approvalId, decision, remember });
+    await decideRuntimeApproval(runtimeJson, { store: threadStore, chatId, actorId: turnActor(incomingIdentity(frame.body)), approvalId, decision, remember, ownsThread: (threadId) => threadStore.ownsThread(chatId, threadId) });
   } catch (error) {
+    if (error instanceof ThreadOwnershipError) {
+      await replyText(frame, THREAD_NOT_OWNED_MESSAGE);
+      return false;
+    }
     if (!(error instanceof ApprovalOwnershipError)) throw error;
     await replyText(frame, `Approval ${approvalId} is not waiting in this chat.`);
     return false;

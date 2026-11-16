@@ -47,15 +47,7 @@ export async function processUpdateBatch({ messages, nextCursor, store, keyOf, h
   for (const msg of messages || []) {
     const key = keyOf(msg);
     if (!key) continue;
-    const claim = store.data.inflight?.[key] ? "interrupted" : await store.claimMessage(key);
-    if (claim === "done") continue;
-    if (claim === "interrupted") {
-      await interrupted(msg);
-      await store.completeMessage(key);
-      continue;
-    }
-    await handle(msg);
-    await store.completeMessage(key);
+    await store.handleMessageOnce(key, () => handle(msg), () => interrupted(msg));
   }
   if (nextCursor) await commitCursor(nextCursor);
 }
@@ -110,19 +102,70 @@ export function extractText(itemList) {
 export function helpText() {
   return [
     "CodeWhale Weixin Bot 命令:",
-    "/help - 显示此帮助",
-    "/status - 运行时和工作区状态",
-    "/threads - 最近运行时线程",
-    "/new - 为此聊天创建新线程",
+    "/help (/帮助) - 显示此帮助",
+    "/status (/状态) - 运行时和工作区状态，并重新发出待批准的批准码",
+    "/threads (/对话) - 最近运行时线程",
+    "/new (/新对话) - 为此聊天创建新线程",
     "/resume <thread_id> - 绑定到已有线程",
     "/model <name|default> - 设置或重置此聊天的模型",
-    "/interrupt - 中断活跃 turn",
+    "/stop (/interrupt, /停止) - 中断活跃 turn",
     "/compact - 压缩当前线程",
+    "1 <批准码> / 2 <批准码> - 允许或拒绝工具调用",
     "/allow <approval_id> [remember] - 批准工具调用",
     "/deny <approval_id> - 拒绝工具调用",
+    "继续 - 查看剩余的回复",
     "",
     "其他所有内容均作为 CodeWhale 提示发送。",
   ].join("\n");
+}
+
+const COMMAND_ALIASES = { 帮助: "help", 状态: "status", 对话: "threads", 新对话: "new", 停止: "interrupt", stop: "interrupt" };
+
+export function parseWeixinCommand(text) {
+  const command = parseCommand(text);
+  const alias = COMMAND_ALIASES[command.name];
+  return alias ? { ...command, name: alias } : command;
+}
+
+const CONTINUE_REPLIES = new Set(["继续", "more", "continue"]);
+
+export function isContinueReply(text) {
+  return CONTINUE_REPLIES.has(String(text || "").trim().toLowerCase());
+}
+
+const CODE_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
+const APPROVAL_REPLY = /^(1|2|y|n|yes|no|允许|同意|拒绝)\s+([23456789a-hjkmnp-z]{6})$/u;
+const ALLOW_WORDS = new Set(["1", "y", "yes", "允许", "同意"]);
+
+export function mintCode(length = 6) {
+  return Array.from(crypto.randomBytes(length), (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join("");
+}
+
+export function parseApprovalReply(text) {
+  const match = String(text || "").trim().toLowerCase().match(APPROVAL_REPLY);
+  if (!match) return null;
+  return { decision: ALLOW_WORDS.has(match[1]) ? "allow" : "deny", code: match[2] };
+}
+
+function clip(text, max) {
+  const value = String(text || "").trim();
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+export function approvalText(approval, code) {
+  const what = [approval.tool_name, approval.intent_summary || approval.summary || approval.description].filter(Boolean).join(": ");
+  return [
+    "需要你的批准 / Approval needed",
+    clip(what, 400),
+    `回复 1 ${code} 允许，2 ${code} 拒绝`,
+    `Reply 1 ${code} to allow, 2 ${code} to deny`,
+  ].filter(Boolean).join("\n");
+}
+
+export { questionText, parseQuestionAnswers } from "../../bridge-core/src/lib.mjs";
+
+export function isSessionExpired(response) {
+  return response?.ret === -14 || response?.errcode === -14;
 }
 
 // ============================================================================
@@ -339,7 +382,11 @@ export async function sendMessage({ baseUrl, token, body, timeoutMs }) {
   }
   const failure = statusFields.find((field) => response[field] !== 0);
   if (failure) {
-    throw Object.assign(new Error(`iLink sendMessage rejected: ${failure}=${response[failure]}`), { deliveryStatus: "rejected" });
+    throw Object.assign(new Error(`iLink sendMessage rejected: ${failure}=${response[failure]}`), {
+      deliveryStatus: "rejected",
+      sessionExpired: isSessionExpired(response),
+      rateLimited: typeof response.errmsg === "string" && /rate.?limit/i.test(response.errmsg),
+    });
   }
   return response;
 }
@@ -358,6 +405,7 @@ export async function sendTyping({ baseUrl, token, ilinkUserId, typingTicket, st
       base_info: { bot_agent: "CodeWhale/1.0" },
     }),
     token,
+    timeoutMs: 10_000,
   });
 }
 
@@ -374,6 +422,7 @@ export async function getConfig({ baseUrl, token, ilinkUserId, contextToken }) {
       base_info: { bot_agent: "CodeWhale/1.0" },
     }),
     token,
+    timeoutMs: 10_000,
   });
   return JSON.parse(raw);
 }
