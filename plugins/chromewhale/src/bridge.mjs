@@ -347,8 +347,8 @@ export function createBridge(options) {
       let body;
       try {
         body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-      } catch (error) {
-        return send(res, 400, { error: "bad_json", detail: String(error) });
+      } catch {
+        return send(res, 400, { error: "bad_json", detail: "Request body is not valid JSON." });
       }
       onBody(body);
     });
